@@ -41,8 +41,8 @@ def make_project(name: str, destination: Path, code: str,
         cmake = f'''cmake_minimum_required(VERSION 3.22)
 project({target} VERSION 1.0.0 LANGUAGES C CXX)
 include(FetchContent)
-if(DEFINED JUCE_PATH AND EXISTS "\${{JUCE_PATH}}/CMakeLists.txt")
-  add_subdirectory("\${{JUCE_PATH}}" JUCE)
+if(DEFINED JUCE_PATH AND EXISTS "${{JUCE_PATH}}/CMakeLists.txt")
+  add_subdirectory("${{JUCE_PATH}}" JUCE)
 else()
   FetchContent_Declare(JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
       GIT_TAG 8.0.12 GIT_SHALLOW TRUE)
@@ -114,10 +114,10 @@ Generated from SkellCore VST Template. The original demo processing is a gain kn
 - Shared SkellCore source: {core_repo}@{core_rev}
 
 ## Build
-\`\`\`sh
+```sh
 cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
 cmake --build build --config Release
-\`\`\`
+```
 
 SkellCore is fetched by a pinned commit. Only update that pin after testing.
 To build in GitHub, upload this generated folder as its own repository and run Actions.

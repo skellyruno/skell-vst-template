@@ -1,6 +1,13 @@
 name: Build Windows VST3
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'SkellCore/**'
+      - 'CMakeLists.txt'
+      - 'Source/PluginEditor.cpp'
+      - 'Source/PluginProcessor.cpp'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:

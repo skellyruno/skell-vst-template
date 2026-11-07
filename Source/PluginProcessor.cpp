@@ -1,3 +1,4 @@
+#include <SkellCore/Core.h>
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 SkellAudioProcessor::SkellAudioProcessor()

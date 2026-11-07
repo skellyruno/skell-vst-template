@@ -297,9 +297,12 @@ struct PitchFormantBackend {
     virtual void processBlock(const float* const* input, float* const* output, int frames,
                               int channels) noexcept {
         if (!input || !output || frames <= 0 || channels < 1 || channels > 2) return;
+        for (int c = 0; c < channels; ++c)
+            if (!input[c] || !output[c]) return;
         for (int i = 0; i < frames; ++i) {
             float in[2] {}, out[2] {};
-            for (int c = 0; c < channels; ++c) in[c] = input[c][i];
+            for (int c = 0; c < channels; ++c)
+                in[c] = static_cast<float>(detail::finite(input[c][i]));
             processFrame(in, out, channels);
             for (int c = 0; c < channels; ++c) output[c][i] = out[c];
         }

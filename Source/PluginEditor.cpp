@@ -37,11 +37,11 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
   g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
   g.setColour(theme.secondary);
   g.drawFittedText("SKELLCORE  /  VST TEMPLATE",
-      getLocalBounds().reduced(25).removeFromTop(26),
-      juce::Justification::topRight, 1);
+      30, 25, getWidth()-60, 18,
+      juce::Justification::centredRight, 1);
   g.setColour(theme.accent);
   g.setFont(juce::Font(juce::FontOptions(12.5f).withStyle("Bold")));
-  g.drawFittedText("GAIN", getWidth()/2 - 58, getHeight() - 55, 116, 18,
+  g.drawFittedText("GAIN", getWidth()/2 - 58, 80, 116, 18,
                    juce::Justification::centred, 1);
   g.setColour(theme.secondary.withAlpha(.82f));
   g.setFont(juce::Font(juce::FontOptions(10.0f)));
@@ -51,7 +51,7 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
 
 void SkellAudioProcessorEditor::resized() {
   const int w = getWidth(), h = getHeight();
-  title.setBounds(30, 48, w-60, 32);
-  const int knobSize = juce::jmin(160, h-122);
-  gain.setBounds((w-knobSize)/2, 87, knobSize, knobSize);
+  title.setBounds(30, 48, w-60, 30);
+  const int knobSize = juce::jmin(156, juce::jmax(76, h-152));
+  gain.setBounds((w-knobSize)/2, 103, knobSize, knobSize);
 }

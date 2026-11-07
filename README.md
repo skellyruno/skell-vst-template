@@ -27,3 +27,7 @@ Without `JUCE_PATH`, CMake fetches JUCE 8.0.12 from GitHub.
 ## Important
 
 This is **not** a synthesizer template; it is an audio effect. It does not include TONIC's pitch/key detector or third-party graphical assets. The supplied original ZIP was used to guide project layout and the GitHub workflow. No original TONIC code is bundled. A successful GitHub Actions build has not been verified in this environment.
+
+## Shared SkellCore library (v0.1 preview)
+
+This template now exposes `SkellCore::DSP` and `SkellCore::UI` as reusable CMake targets. They provide a host tempo clock, activity/onset cues, an FDN reverb, an experimental four-times interpolated-peak limiter, a pitch/formant adapter, shared UI themes, and a glow cache. See [SkellCore/README.md](SkellCore/README.md) for limitations, tests and version-pinned cross-repository usage. The existing quickstart gain processor is unchanged.

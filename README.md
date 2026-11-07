@@ -63,7 +63,7 @@ The production tuner exposes block processing and stable declared dry/transient 
 Include `<SkellCore/backends/deesser/PhraseAwareDetector.h>` and use `skellcore::deesser::PhraseAwareDetector` for the existing DeEsser logic, and `<SkellCore/backends/master/MasteringEngine.h>` for the sampled-at-oversampled-rate mastering core. The mastering engine needs a high-quality *external* oversampler. The generic `TruePeakLimiter` is experimental; no compliance claim.
 
 ## Status and migration
-This is **v0.2 integration work**. Source import does not automatically migrate any already released plugin. Existing DAW automation, UI layout, plugin IDs, and audio behavior must stay unchanged until validated per-plugin.
+This is **v0.3 shared-core work**. Source import does not automatically migrate any already released plugin. Existing DAW automation, UI layout, plugin IDs, and audio behavior must stay unchanged until validated per-plugin.
 
 - Tuning, phrase aware, and mastering algorithms: imported, require A/B tests before plugin adoption.
 - FDN reverb, prototype true peak limiter, onset tracking: functional portable modules, not production-certified.

@@ -178,7 +178,8 @@ private:
     std::array<float, 4> feedback_ {}, dampingState_ {};
 };
 
-// 4x windowed-sinc interpolated-peak lookahead limiter. NOT yet BS.1770-certified.
+// Interpolated-peak lookahead limiter (Standard 4x, Economy 2x).
+// Neither quality is BS.1770-certified.
 // Host must report latencySamples() for delay compensation. Processes mono/stereo.
 class TruePeakLimiter {
 public:

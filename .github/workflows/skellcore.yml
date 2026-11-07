@@ -3,10 +3,12 @@ on:
   push:
     paths:
       - "SkellCore/**"
+      - "tools/**"
       - ".github/workflows/skellcore.yml"
   pull_request:
     paths:
       - "SkellCore/**"
+      - "tools/**"
       - ".github/workflows/skellcore.yml"
 jobs:
   core-native:

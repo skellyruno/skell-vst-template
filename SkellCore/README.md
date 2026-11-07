@@ -65,3 +65,16 @@ The portable tests do not need JUCE, a DAW, or any audio hardware. Remaining rel
 7. Use versioned, pinned dependencies in AdlibLab, Silence Designer, Choir and the new plugins when their repos exist.
 
 Every significant DSP change must pass golden WAV comparisons, latency and denormal tests before becoming the default.
+
+
+## v0.2 production source integration
+The library now contains **real upstream DSP code**, not merely empty interface stubs:
+
+- `backends/tune/`: copied SkellyTune RealtimeTuner v3.3 and its seven supporting headers, under SkellyTune's MIT license.
+- `backends/SkellyTuneBackend.h`: directly forwards planar buffers and preserves the original fixed dry/transient delay declaration. This is not a new pitch algorithm.
+- `backends/deesser/PhraseAwareDetector.h`: namespaced copy of DeEsser's live phrase-aware sibilance detector. Its algorithm, window lengths and sensitivity mapping are preserved.
+- `backends/master/MasteringEngine.h`: namespaced copy of Skelly Master's oversampled-frame DSP. Its external oversampling and latency requirements remain intact.
+- `HostTempoClock.h`: optional JUCE playhead position adapter.
+- `tests/test_integrations.cpp`: portable backend smoke tests (must run in CI before migration).
+
+These are **versioned reference copies** and must not be silently rolled forward as upstream repos change; changes require source SHA updates and A/B audio fixtures. The new generic FDN and limiter are independent prototypes and are not substitutes for the production engines without validation.

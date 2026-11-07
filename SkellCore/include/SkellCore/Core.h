@@ -229,18 +229,41 @@ struct PitchFormantBackend {
     virtual void reset() noexcept = 0;
     virtual void processFrame(const float* input, float* output, int channels) noexcept = 0;
     virtual int latencySamples() const noexcept = 0;
+    // The block adapter is preferred for heavier tuned engines. The fallback
+    // implements it with fixed-size stack arrays and no allocation.
+    virtual void processBlock(const float* const* input, float* const* output, int frames,
+                              int channels) noexcept {
+        if (!input || !output || frames <= 0 || channels < 1 || channels > 2) return;
+        for (int i = 0; i < frames; ++i) {
+            float in[2] {}, out[2] {};
+            for (int c = 0; c < channels; ++c) in[c] = input[c][i];
+            processFrame(in, out, channels);
+            for (int c = 0; c < channels; ++c) output[c][i] = out[c];
+        }
+    }
 };
 class PitchFormantEngine {
 public:
-    void prepare(double rate, int channels) { rate_ = rate; channels_ = channels; if (backend_) backend_->prepare(rate, channels); }
+    void prepare(double rate, int channels) {
+        rate_ = rate; channels_ = std::clamp(channels, 1, 2);
+        if (backend_) backend_->prepare(rate_, channels_);
+    }
     // Only call while audio is suspended; backend lifetime is owned by the plugin.
     void setBackend(PitchFormantBackend* backend) noexcept { backend_ = backend; }
     void reset() noexcept { if (backend_) backend_->reset(); }
     bool hasBackend() const noexcept { return backend_ != nullptr; }
     int latencySamples() const noexcept { return backend_ ? backend_->latencySamples() : 0; }
     void processFrame(const float* input, float* output, int channels) noexcept {
+        if (!input || !output || channels < 1 || channels > 2) return;
         if (backend_) backend_->processFrame(input, output, channels);
         else for (int c = 0; c < channels; ++c) output[c] = input[c];
+    }
+    void processBlock(const float* const* input, float* const* output, int frames,
+                      int channels) noexcept {
+        if (!input || !output || frames <= 0 || channels < 1 || channels > 2) return;
+        if (backend_) backend_->processBlock(input, output, frames, channels);
+        else for (int c = 0; c < channels; ++c)
+            std::copy_n(input[c], frames, output[c]);
     }
 private:
     PitchFormantBackend* backend_ = nullptr;

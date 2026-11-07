@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SkellPlugin VERSION 1.0.0 LANGUAGES C CXX)
+project(SkellCoreVSTTemplate VERSION 1.0.0 LANGUAGES C CXX)
 include(FetchContent)
 if(DEFINED JUCE_PATH AND EXISTS "${JUCE_PATH}/CMakeLists.txt")
   add_subdirectory("${JUCE_PATH}" JUCE)

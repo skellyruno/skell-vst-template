@@ -1,33 +1,62 @@
-# Skell VST3 Quickstart Template
+# SkellCore VST Template
+Shared **Skell Audio** foundation for JUCE 8 C++17 VST3 plugins.
 
-Reusable JUCE 8 / CMake / GitHub Actions Windows VST3 starter derived from the **build structure** of your uploaded skell-key-vst project. Unlike the TONIC-specific project, this is a generic **gain effect** with a working parameter, GUI knob, preset-state serialization, mono/stereo support, and automated GitHub packaging.
+The former Skell VST Quickstart is preserved as a **small gain demo plugin**, with its original VST3 manufacturer, plugin code and bundle identity unchanged. Build a new plugin by choosing unique IDs; never reuse these demo IDs in commercial releases.
 
-## Fast start
+## Contents
+- `SkellCore::DSP`: portable C++17 TempoClock, PhraseTracker, OnsetDetector, four-line FDNReverb, prototype 4× interpolated-peak limiter, PitchFormantEngine.
+- `SkellCore::UI`: JUCE LookAndFeel, colour themes and glow cache.
+- **Production DSP backend copies**: SkellyTune RealtimeTuner v3.3 and dependencies (MIT), exact DeEsser PhraseAwareDetector behavior in a namespaced copy, and Skelly Master MasteringEngine in a namespaced copy.
+- `SkellCore/backends/SkellyTuneBackend.h`: adapter matching production pitch backend to the shared `PitchFormantEngine`.
+- Separate portable CI (Windows + Linux) and Windows JUCE VST3 build pipeline.
 
-1. Create a new GitHub repository and upload the **contents** of this folder (including `.github`).
-2. Open **Actions → Build Windows VST3 → Run workflow**.
-3. After a successful build, download the workflow artifact containing the `.vst3` bundle.
-4. Or run `python tools/new_plugin.py "Skell Compressor" ../skell-compressor --code Sk03` to generate a separate renamed project. Use a **different 4-character plugin code** for every released plugin; the manufacturer code should remain stable for your brand.
+## Build
+```sh
+cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
+cmake --build build --config Release
+```
 
-## Local build
+`JUCE_PATH` is optional; CMake otherwise fetches pinned JUCE 8.0.12.
+```sh
+cmake -S SkellCore -B build-core -DSKELLCORE_BUILD_TESTS=ON
+cmake --build build-core --config Release
+ctest --test-dir build-core -C Release --output-on-failure
+```
 
-`cmake -S . -B build -A x64 -DJUCE_PATH=C:/JUCE`
+## Reuse in other plugin repos
+Copy `SkellCore/` into your monorepo, or FetchContent the **immutable commit** of this template. Example from a consumer:
+```cmake
+include(FetchContent)
+FetchContent_Declare(SkellCore
+  GIT_REPOSITORY https://github.com/skellyruno/skell-vst-template.git
+  GIT_TAG <IMMUTABLE_COMMIT_SHA>
+  SOURCE_SUBDIR SkellCore)
+FetchContent_MakeAvailable(SkellCore)
+target_link_libraries(MyPlugin PRIVATE SkellCore::DSP SkellCore::UI)
+```
+Replace `MyPlugin` with the JUCE target. Once the repository itself is renamed on GitHub, update the URL to `skellcore-vst-template` while pinning the immutable revision. Repositories renamed by GitHub redirect old clones but new URLs should be adopted in each plugin.
 
-`cmake --build build --config Release --parallel 2`
+## Integration APIs
+```cpp
+#include <SkellCore/Core.h>
+#include <SkellCore/backends/SkellyTuneBackend.h>
+skellcore::backends::SkellyTuneBackend tuning;
+skellcore::PitchFormantEngine pitch;
+pitch.setBackend(&tuning);
+pitch.prepare(48000, 2);
+auto latency = pitch.latencySamples(); // Report from prepareToPlay.
+```
+The production tuner exposes block processing and stable declared dry/transient latency. Do not change PDC inside processBlock and do not confuse variable pitch-cycle source age with fixed host delay.
 
-Without `JUCE_PATH`, CMake fetches JUCE 8.0.12 from GitHub.
+Include `<SkellCore/backends/deesser/PhraseAwareDetector.h>` and use `skellcore::deesser::PhraseAwareDetector` for the existing DeEsser logic, and `<SkellCore/backends/master/MasteringEngine.h>` for the sampled-at-oversampled-rate mastering core. The mastering engine needs a high-quality *external* oversampler. The generic `TruePeakLimiter` is experimental; no compliance claim.
 
-## Where to edit
+## Status and migration
+This is **v0.2 integration work**. Source import does not automatically migrate any already released plugin. Existing DAW automation, UI layout, plugin IDs, and audio behavior must stay unchanged until validated per-plugin.
 
-- `Source/PluginProcessor.cpp`: parameters and DSP (the sample multiplies incoming audio by Gain).
-- `Source/PluginEditor.cpp`: GUI and knob layout.
-- `CMakeLists.txt`: company, unique plugin code, bundle ID, plugin format, name.
-- `.github/workflows/build.yml`: CI compilation and artifact packaging.
+- Tuning, phrase aware, and mastering algorithms: imported, require A/B tests before plugin adoption.
+- FDN reverb, prototype true peak limiter, onset tracking: functional portable modules, not production-certified.
+- Host tempo / JUCE UI: available, UI not mandatory for a plugin.
+- Choir: links pinned SkellCore target on separate PR; current sound unchanged.
+- AdlibLab / Silence Designer / other new plugins: opt in as their CMake projects are ready.
 
-## Important
-
-This is **not** a synthesizer template; it is an audio effect. It does not include TONIC's pitch/key detector or third-party graphical assets. The supplied original ZIP was used to guide project layout and the GitHub workflow. No original TONIC code is bundled. A successful GitHub Actions build has not been verified in this environment.
-
-## Shared SkellCore library (v0.1 preview)
-
-This template now exposes `SkellCore::DSP` and `SkellCore::UI` as reusable CMake targets. They provide a host tempo clock, activity/onset cues, an FDN reverb, an experimental four-times interpolated-peak limiter, a pitch/formant adapter, shared UI themes, and a glow cache. See [SkellCore/README.md](SkellCore/README.md) for limitations, tests and version-pinned cross-repository usage. The existing quickstart gain processor is unchanged.
+See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](https://github.com/skellyruno/skell-vst-template/issues/2).

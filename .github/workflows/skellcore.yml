@@ -1,4 +1,10 @@
 name: SkellCore portable DSP tests
+# Iterative plugin development often pushes many commits. Cancel superseded
+# branch/PR runs to avoid multiple resource-heavy JUCE builds in parallel.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 on:
   push:
     paths:
@@ -14,6 +20,7 @@ jobs:
   core-native:
     name: Core native / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -34,6 +41,7 @@ jobs:
   core-sanitizers:
     name: Linux ASan + UBSan DSP tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Configure sanitizers

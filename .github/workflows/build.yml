@@ -1,4 +1,10 @@
 name: Build SkellCore VST Template (Windows VST3 + Standalone)
+# Iterative plugin development often pushes many commits. Cancel superseded
+# branch/PR runs to avoid multiple resource-heavy JUCE builds in parallel.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 on:
   workflow_dispatch:
   pull_request:
@@ -11,6 +17,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Configure

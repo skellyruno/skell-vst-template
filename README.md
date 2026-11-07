@@ -22,6 +22,14 @@ This creates an independent VST3 + Standalone project with an immutable SkellCor
 
 SkellCore offers an opt-in `TruePeakLimiter::Quality::Economy` detector (2 phases × 8 taps, versus default Standard's 4 × 16), modulo-free FIR reads, bounded buffer allocations, pre-prepare bypass safety, a bounded UI glow cache, and actual Release-mode allocation/parity tests. Read [performance details](SkellCore/PERFORMANCE.md) before enabling Economy in any shipped plugin.
 
+## v0.4 host safety and polished starter UI
+
+The pitch/formant adapter is now lifecycle-aware: before prepare, after backend replacement, or with an incompatible channel layout, it safely passes sanitized dry audio rather than returning an undefined output. The SkellyTune DSP algorithm is unchanged; new parity tests compare it to the original at 44.1/48/96 kHz with variable host blocks and six simultaneous instances.
+
+The starter gain effect now smooths host automation over 15 ms to reduce zipper clicks. Its UI is compact, resizable and vector-drawn with the SkellCore neon theme. The demo is built as both VST3 and Standalone for testing. **No existing demo plugin IDs or preset parameter IDs were changed.**
+
+As always, a CI build and synthetic DSP checks do not replace real Windows FL Studio compatibility and low-end CPU validation.
+
 ## Build
 ```sh
 cmake -S . -B build -DJUCE_PATH=/path/to/JUCE

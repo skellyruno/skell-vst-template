@@ -13,7 +13,7 @@ juce_add_plugin(SkellPlugin
   BUNDLE_ID "audio.skell.quickstart"
   PLUGIN_MANUFACTURER_CODE SkAu
   PLUGIN_CODE Sk01
-  FORMATS VST3
+  FORMATS VST3 Standalone
   PRODUCT_NAME "Skell Quickstart"
   IS_SYNTH FALSE
   NEEDS_MIDI_INPUT FALSE

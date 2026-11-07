@@ -1,3 +1,4 @@
+#include <SkellCore/UI.h>
 #include "PluginEditor.h"
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
  : AudioProcessorEditor(&p),gainAttachment(p.parameters,"gain",gain) {

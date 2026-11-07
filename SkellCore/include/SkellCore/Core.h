@@ -118,19 +118,28 @@ public:
             lines_[i].assign(lengths_[i], 0.0f);
         }
         reset();
+        feedbackValid_ = false; // delay lengths changed with sample rate
         setParameters(decaySeconds_, damping_, wet_);
         ready_ = true;
     }
     void reset() noexcept { positions_.fill(0); dampingState_.fill(0); for (auto& l : lines_) std::fill(l.begin(), l.end(), 0); }
     void setParameters(float decaySeconds, float damping, float wet) noexcept {
-        decaySeconds_ = static_cast<float>(detail::clamp(decaySeconds, .15, 20));
+        const float nextDecay = static_cast<float>(detail::clamp(decaySeconds, .15, 20));
         damping_ = static_cast<float>(detail::clamp(damping, 0, .98));
         wet_ = static_cast<float>(detail::clamp(wet, 0, 1));
         dryGain_ = 1.f - wet_;
         wetGain_ = wet_ * .45f;
         dampingDrive_ = 1.f - damping_;
-        for (std::size_t i = 0; i < 4; ++i)
-            feedback_[i] = static_cast<float>(std::exp(std::log(.001) * static_cast<double>(lengths_[i]) / (rate_ * decaySeconds_)));
+        // FL Studio can repeat the same parameter value every audio block.
+        // Skip four costly exp() calls unless the decay or sample rate changes.
+        if (!feedbackValid_ || nextDecay != decaySeconds_) {
+            decaySeconds_ = nextDecay;
+            constexpr double logMinus60dB = -6.907755278982137052;
+            for (std::size_t i = 0; i < 4; ++i)
+                feedback_[i] = static_cast<float>(
+                    std::exp(logMinus60dB * static_cast<double>(lengths_[i]) / (rate_ * decaySeconds_)));
+            feedbackValid_ = true;
+        }
     }
     std::array<float, 2> processFrame(float left, float right) noexcept {
         const float inL = std::isfinite(left) ? left : 0, inR = std::isfinite(right) ? right : 0;
@@ -163,7 +172,7 @@ private:
     double rate_ = 48000;
     float decaySeconds_ = 2.5f, damping_ = .3f, wet_ = .25f;
     float dryGain_ = .75f, wetGain_ = .1125f, dampingDrive_ = .7f;
-    bool ready_ = false;
+    bool ready_ = false, feedbackValid_ = false;
     std::array<std::vector<float>, 4> lines_;
     std::array<std::size_t, 4> lengths_ {31,31,31,31}, positions_ {};
     std::array<float, 4> feedback_ {}, dampingState_ {};
@@ -210,7 +219,12 @@ public:
         write_ = 0; historyWrite_ = 0; gain_ = 1.0; hold_ = 0;
     }
     void setCeilingDb(float db) noexcept {
-        ceiling_ = std::pow(10.0, detail::clamp(db, -24, 0) / 20.0);
+        const float clamped = static_cast<float>(detail::clamp(db, -24, 0));
+        if (!ceilingValid_ || clamped != ceilingDb_) {
+            ceilingDb_ = clamped;
+            ceiling_ = std::pow(10.0, ceilingDb_ / 20.0);
+            ceilingValid_ = true;
+        }
     }
     int latencySamples() const noexcept { return ready_ ? delaySamples_ : 0; }
     bool isPrepared() const noexcept { return ready_; }
@@ -261,7 +275,8 @@ private:
     int channels_ = 2, delaySamples_ = 144, hold_ = 0, historyWrite_ = 0;
     int activeTaps_ = taps, activePhases_ = 4;
     std::size_t write_ = 0;
-    bool ready_ = false;
+    bool ready_ = false, ceilingValid_ = false;
+    float ceilingDb_ = -1.f;
     Quality quality_ = Quality::Standard;
     std::array<std::vector<float>, 2> delay_;
     std::array<std::array<double, taps * 2>, 2> history_ {};

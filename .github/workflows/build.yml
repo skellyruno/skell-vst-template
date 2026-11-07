@@ -1,6 +1,13 @@
-name: Build Windows VST3
+name: Build SkellCore VST Template (Windows VST3)
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'SkellCore/**'
+      - 'CMakeLists.txt'
+      - 'Source/PluginEditor.cpp'
+      - 'Source/PluginProcessor.cpp'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
@@ -16,9 +23,9 @@ jobs:
         run: |
           $plugin = Get-ChildItem -Path build -Directory -Recurse -Filter '*.vst3' | Select-Object -First 1
           if (-not $plugin) { throw 'VST3 bundle missing' }
-          Compress-Archive -Path $plugin.FullName -DestinationPath SkellPlugin-Windows-VST3.zip
+          Compress-Archive -Path $plugin.FullName -DestinationPath SkellCore-Template-Windows-VST3.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: SkellPlugin-Windows-VST3
-          path: SkellPlugin-Windows-VST3.zip
+          name: SkellCore-Template-Windows-VST3
+          path: SkellCore-Template-Windows-VST3.zip
           if-no-files-found: error

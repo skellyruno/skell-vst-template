@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SkellPlugin VERSION 1.0.0 LANGUAGES C CXX)
+project(SkellCoreVSTTemplate VERSION 1.0.0 LANGUAGES C CXX)
 include(FetchContent)
 if(DEFINED JUCE_PATH AND EXISTS "${JUCE_PATH}/CMakeLists.txt")
   add_subdirectory("${JUCE_PATH}" JUCE)
@@ -7,6 +7,7 @@ else()
   FetchContent_Declare(JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE.git GIT_TAG 8.0.12 GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(JUCE)
 endif()
+add_subdirectory(SkellCore)
 juce_add_plugin(SkellPlugin
   COMPANY_NAME "Skell Audio"
   BUNDLE_ID "audio.skell.quickstart"
@@ -25,3 +26,5 @@ target_compile_features(SkellPlugin PRIVATE cxx_std_17)
 target_compile_definitions(SkellPlugin PUBLIC JUCE_VST3_CAN_REPLACE_VST2=0)
 target_compile_definitions(SkellPlugin PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(SkellPlugin PRIVATE juce::juce_audio_utils juce::juce_audio_processors juce::juce_gui_extra)
+
+target_link_libraries(SkellPlugin PRIVATE SkellCore::DSP SkellCore::UI)

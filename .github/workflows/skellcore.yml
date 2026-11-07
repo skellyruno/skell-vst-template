@@ -19,10 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S SkellCore -B build-core -DSKELLCORE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S SkellCore -B build-core -DSKELLCORE_BUILD_TESTS=ON -DSKELLCORE_BUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build-core --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build-core --build-config Release --output-on-failure
+      - name: CPU benchmark (non-gating measurements)
+        run: ctest --test-dir build-core --build-config Release -R SkellCoreBenchmark -V
       - name: Verify plugin generator
         run: python tools/test_new_plugin.py

@@ -18,6 +18,10 @@ python tools/new_plugin.py "Skell Compressor" ../skell-compressor-vst --code SC0
 
 This creates an independent VST3 + Standalone project with an immutable SkellCore dependency, unique plugin code, generated CI, and the original quickstart gain processor. Pick a different four-character code for **every** plugin. Once you rename the GitHub template repository, use `--core-repo https://github.com/skellyruno/skellcore-vst-template.git`.
 
+## Low-end PC performance and safety
+
+SkellCore offers an opt-in `TruePeakLimiter::Quality::Economy` detector (2 phases × 8 taps, versus default Standard's 4 × 16), modulo-free FIR reads, bounded buffer allocations, pre-prepare bypass safety, a bounded UI glow cache, and actual Release-mode allocation/parity tests. Read [performance details](SkellCore/PERFORMANCE.md) before enabling Economy in any shipped plugin.
+
 ## Build
 ```sh
 cmake -S . -B build -DJUCE_PATH=/path/to/JUCE

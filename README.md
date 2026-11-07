@@ -10,6 +10,14 @@ The former Skell VST Quickstart is preserved as a **small gain demo plugin**, wi
 - `SkellCore/backends/SkellyTuneBackend.h`: adapter matching production pitch backend to the shared `PitchFormantEngine`.
 - Separate portable CI (Windows + Linux) and Windows JUCE VST3 build pipeline.
 
+## Generate a new plugin (recommended)
+
+```sh
+python tools/new_plugin.py "Skell Compressor" ../skell-compressor-vst --code SC01
+```
+
+This creates an independent VST3 + Standalone project with an immutable SkellCore dependency, unique plugin code, generated CI, and the original quickstart gain processor. Pick a different four-character code for **every** plugin. Once you rename the GitHub template repository, use `--core-repo https://github.com/skellyruno/skellcore-vst-template.git`.
+
 ## Build
 ```sh
 cmake -S . -B build -DJUCE_PATH=/path/to/JUCE

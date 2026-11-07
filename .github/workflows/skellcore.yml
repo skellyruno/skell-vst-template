@@ -24,3 +24,5 @@ jobs:
         run: cmake --build build-core --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build-core --build-config Release --output-on-failure
+      - name: Verify plugin generator
+        run: python tools/test_new_plugin.py

@@ -1,6 +1,7 @@
 #include <SkellCore/Core.h>
 #include <SkellCore/backends/SkellyTuneBackend.h>
 #include <vector>
+#include <memory>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -73,5 +74,34 @@ int main() {
              <<pitchElapsed/4.0*100.0
              <<"% of one 48k real-time stream (wall time)\n";
 
+    // Multi-instance budget diagnostic. Each engine is independently prepared
+    // *before* the timer. Instances are processed serially to model one
+    // saturated DAW worker thread (not a substitute for real FL Studio).
+    for (const int instanceCount : {1,4,8}) {
+        std::vector<std::unique_ptr<skellcore::backends::SkellyTuneBackend>> engines;
+        engines.reserve(static_cast<std::size_t>(instanceCount));
+        for (int i=0;i<instanceCount;++i) {
+            auto engine=std::make_unique<skellcore::backends::SkellyTuneBackend>();
+            engine->prepare(rate,2);
+            engines.push_back(std::move(engine));
+        }
+        double sum=0;
+        const auto started=clock::now();
+        for (int pos=0;pos<frames;pos+=block) {
+            const int count=std::min(block,frames-pos);
+            const float* src[2]{vocalL.data()+pos,vocalR.data()+pos};
+            float* dst[2]{outL.data(),outR.data()};
+            for (auto& engine : engines) {
+                engine->processBlock(src,dst,count,2);
+                sum+=outL[0];
+            }
+        }
+        const double seconds=std::chrono::duration<double>(clock::now()-started).count();
+        finalChecksum=sum;
+        std::cout<<"SkellyTune "<<instanceCount
+                 <<" simultaneous instances (serial, 256-sample blocks): "
+                 <<seconds/4.0*100.0
+                 <<"% of 48k stereo real-time budget (wall time)\n";
+    }
     if(finalChecksum==1.e100)std::cerr<<"unreachable\n";
 }

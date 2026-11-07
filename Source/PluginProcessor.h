@@ -3,7 +3,7 @@
 class SkellAudioProcessor final : public juce::AudioProcessor {
 public:
   SkellAudioProcessor();
-  void prepareToPlay(double, int) override {}
+  void prepareToPlay(double sampleRate, int) override;
   void releaseResources() override {}
   bool isBusesLayoutSupported(const BusesLayout& l) const override;
   void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
@@ -24,5 +24,6 @@ public:
   juce::AudioProcessorValueTreeState parameters;
   static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 private:
+  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain_{1.0f};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SkellAudioProcessor)
 };

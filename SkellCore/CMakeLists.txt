@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SkellCore VERSION 0.3.0 LANGUAGES CXX)
+project(SkellCore VERSION 0.4.0 LANGUAGES CXX)
 
 add_library(SkellCoreDSP INTERFACE)
 add_library(SkellCore::DSP ALIAS SkellCoreDSP)
@@ -38,6 +38,9 @@ if(SKELLCORE_BUILD_TESTS)
   add_executable(SkellCoreCachedParametersTests tests/test_cached_parameters.cpp)
   target_link_libraries(SkellCoreCachedParametersTests PRIVATE SkellCore::DSP)
   add_test(NAME SkellCoreCachedParametersTests COMMAND SkellCoreCachedParametersTests)
+  add_executable(SkellCoreHostLifecycleTests tests/test_host_lifecycle.cpp)
+  target_link_libraries(SkellCoreHostLifecycleTests PRIVATE SkellCore::DSP)
+  add_test(NAME SkellCoreHostLifecycleTests COMMAND SkellCoreHostLifecycleTests)
 endif()
 
 option(SKELLCORE_BUILD_BENCHMARKS "Build opt-in SkellCore CPU benchmark (non-gating)" OFF)

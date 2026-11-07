@@ -31,7 +31,7 @@ public:
         return prepared_ ? tuner_.latencySamples() : 0;
     }
     skelly::DelayContract outputDelayContract() const noexcept {
-        return tuner_.outputDelayContract(false);
+        return prepared_ ? tuner_.outputDelayContract(false) : skelly::DelayContract{};
     }
     void processFrame(const float* input, float* output, int channels) noexcept override {
         if (!input || !output || channels < 1 || channels > 2) return;

@@ -69,6 +69,7 @@ void testUpstreamParity(){
         settings.pitchClasses=0x0fff;
         adapter.setParameters(settings); // set before prepare must be retained
         assert(!adapter.isPrepared()&&adapter.latencySamples()==0);
+        assert(adapter.outputDelayContract().reportedSamples==0);
         float initialInput[3]{.25f,.5f,-.1f},initialOutput[3]{};
         const float* inp[1]{initialInput};float* outp[1]{initialOutput};
         adapter.processBlock(inp,outp,3,1);

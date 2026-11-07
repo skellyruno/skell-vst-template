@@ -307,30 +307,56 @@ struct PitchFormantBackend {
 };
 class PitchFormantEngine {
 public:
+    // Lifecycle: call prepare/setBackend only with audio stopped.
+    // Replacing the backend invalidates the prepared state until prepare again.
     void prepare(double rate, int channels) {
-        rate_ = rate; channels_ = std::clamp(channels, 1, 2);
-        if (backend_) backend_->prepare(rate_, channels_);
+        prepared_ = false;
+        rate_ = detail::safeSampleRate(rate);
+        channels_ = std::clamp(channels, 1, 2);
+        if (backend_) {
+            backend_->prepare(rate_, channels_);
+            prepared_ = true;
+        }
     }
-    // Only call while audio is suspended; backend lifetime is owned by the plugin.
-    void setBackend(PitchFormantBackend* backend) noexcept { backend_ = backend; }
-    void reset() noexcept { if (backend_) backend_->reset(); }
+    void setBackend(PitchFormantBackend* backend) noexcept {
+        backend_ = backend;
+        prepared_ = false;
+    }
+    void reset() noexcept {
+        if (backend_ && prepared_) backend_->reset();
+    }
     bool hasBackend() const noexcept { return backend_ != nullptr; }
-    int latencySamples() const noexcept { return backend_ ? backend_->latencySamples() : 0; }
+    bool isPrepared() const noexcept { return prepared_; }
+    int latencySamples() const noexcept {
+        return prepared_ && backend_ ? backend_->latencySamples() : 0;
+    }
     void processFrame(const float* input, float* output, int channels) noexcept {
         if (!input || !output || channels < 1 || channels > 2) return;
-        if (backend_) backend_->processFrame(input, output, channels);
-        else for (int c = 0; c < channels; ++c) output[c] = input[c];
+        if (backend_ && prepared_ && channels <= channels_) {
+            backend_->processFrame(input, output, channels);
+            return;
+        }
+        // Safe fallback: sanitized dry signal, no dynamic allocation.
+        for (int c = 0; c < channels; ++c)
+            output[c] = static_cast<float>(detail::finite(input[c]));
     }
-    void processBlock(const float* const* input, float* const* output, int frames,
-                      int channels) noexcept {
+    void processBlock(const float* const* input, float* const* output,
+                      int frames, int channels) noexcept {
         if (!input || !output || frames <= 0 || channels < 1 || channels > 2) return;
-        if (backend_) backend_->processBlock(input, output, frames, channels);
-        else for (int c = 0; c < channels; ++c)
-            std::copy_n(input[c], frames, output[c]);
+        for (int c = 0; c < channels; ++c)
+            if (!input[c] || !output[c]) return;
+        if (backend_ && prepared_ && channels <= channels_) {
+            backend_->processBlock(input, output, frames, channels);
+            return;
+        }
+        for (int c = 0; c < channels; ++c)
+            for (int i = 0; i < frames; ++i)
+                output[c][i] = static_cast<float>(detail::finite(input[c][i]));
     }
 private:
-    PitchFormantBackend* backend_ = nullptr;
+    PitchFormantBackend* backend_ = nullptr; // Non-owning
     double rate_ = 48000;
     int channels_ = 2;
+    bool prepared_ = false;
 };
 } // namespace skellcore

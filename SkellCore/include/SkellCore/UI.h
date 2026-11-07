@@ -1,6 +1,8 @@
 #pragma once
 // JUCE-dependent UI primitives. Include only from editor/UI code, never DSP.
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <cmath>
+#include <cstdint>
 
 namespace skellcore::ui {
 struct Theme {
@@ -37,6 +39,8 @@ public:
     Theme palette() const noexcept { return colours_; }
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                           float position, float startAngle, float endAngle, juce::Slider&) override {
+        if(width<=0 || height<=0) return;
+        position = std::isfinite(position) ? juce::jlimit(0.f,1.f,position) : 0.f;
         auto b = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height).reduced(6.0f);
         const auto radius = std::min(b.getWidth(), b.getHeight()) * .5f;
         const auto cx = b.getCentreX(), cy = b.getCentreY();
@@ -57,14 +61,23 @@ private:
 // paint() only draws a previously prepared image; never regenerate on audio thread.
 class GlowCache {
 public:
-    void rebuild(int width, int height, juce::Colour colour, float radius = 8.f) {
-        if (width <= 0 || height <= 0) { image_ = {}; return; }
-        image_ = juce::Image(juce::Image::ARGB, width, height, true);
+    // Cap bitmap memory at ~6 MiB. Large editors get no glow instead of OOM.
+    static constexpr std::uint64_t maxPixels = 1572864;
+    void rebuild(int width,int height,juce::Colour colour,float radius=8.f) {
+        if(!std::isfinite(radius)) radius=8.f;
+        radius=juce::jlimit(0.f,32.f,radius);
+        const bool invalid=width<=0 || height<=0 || width>2048 || height>2048 ||
+            static_cast<std::uint64_t>(width)*static_cast<std::uint64_t>(height)>maxPixels;
+        if(invalid){image_={};cacheWidth_=cacheHeight_=0;return;}
+        if(image_.isValid() && cacheWidth_==width && cacheHeight_==height &&
+           cacheColour_==colour && cacheRadius_==radius) return;
+        image_=juce::Image(juce::Image::ARGB,width,height,true);
+        cacheWidth_=width;cacheHeight_=height;cacheColour_=colour;cacheRadius_=radius;
         juce::Graphics g(image_);
-        const auto bounds = juce::Rectangle<float>(0,0,(float)width,(float)height).reduced(10);
-        for (int layer = 7; layer >= 1; --layer) {
-            g.setColour(colour.withAlpha(0.018f * (8-layer)));
-            g.drawRoundedRectangle(bounds.expanded((float)layer),radius + layer,1.5f);
+        const auto b=juce::Rectangle<float>(0,0,(float)width,(float)height).reduced(10);
+        for(int i=7;i>=1;--i){
+            g.setColour(colour.withAlpha(.018f*(8-i)));
+            g.drawRoundedRectangle(b.expanded((float)i),radius+i,1.5f);
         }
     }
     void paint(juce::Graphics& g, int x, int y) const {
@@ -73,5 +86,8 @@ public:
     bool valid() const noexcept { return image_.isValid(); }
 private:
     juce::Image image_;
+    int cacheWidth_=0,cacheHeight_=0;
+    float cacheRadius_=8.f;
+    juce::Colour cacheColour_;
 };
 } // namespace skellcore::ui

@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <SkellCore/Core.h>
 #include <SkellCore/backends/SkellyTuneBackend.h>
 #include <cassert>

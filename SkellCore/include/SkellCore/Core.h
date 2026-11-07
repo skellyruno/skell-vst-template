@@ -1,5 +1,5 @@
 #pragma once
-// SkellCore v0.1: JUCE-free, portable C++17 building blocks.
+// SkellCore portable C++17 DSP building blocks.
 // No heap allocation occurs in process*() after prepare().
 #include <algorithm>
 #include <array>
@@ -14,6 +14,9 @@ inline double finite(double v) noexcept { return std::isfinite(v) ? v : 0.0; }
 inline double clamp(double v, double lo, double hi) noexcept {
     return std::max(lo, std::min(hi, finite(v)));
 }
+inline double safeSampleRate(double value) noexcept {
+    return std::isfinite(value) ? std::clamp(value, 1000.0, 192000.0) : 48000.0;
+}
 inline double pole(double rate, double ms) noexcept {
     return std::exp(-1.0 / (std::max(1000.0, rate) * ms * 0.001));
 }
@@ -23,7 +26,7 @@ constexpr double pi = 3.1415926535897932384626433832795;
 // The host is the authority: SkellCore does not try to detect musical BPM from audio.
 class TempoClock {
 public:
-    void prepare(double sampleRate) noexcept { rate_ = std::max(1000.0, detail::finite(sampleRate)); reset(); }
+    void prepare(double sampleRate) noexcept { rate_ = detail::safeSampleRate(sampleRate); reset(); }
     void reset() noexcept { ppq_ = 0; samples_ = 0; playing_ = false; }
     void update(double bpm, double hostPpq, bool playing) noexcept {
         if (std::isfinite(bpm) && bpm >= 20.0 && bpm <= 400.0) bpm_ = bpm;
@@ -49,7 +52,7 @@ private:
 class PhraseTracker {
 public:
     void prepare(double sampleRate) noexcept {
-        rate_ = std::max(1000.0, detail::finite(sampleRate));
+        rate_ = detail::safeSampleRate(sampleRate);
         attack_ = detail::pole(rate_, 7.0); release_ = detail::pole(rate_, 60.0);
         gapSamples_ = static_cast<int>(rate_ * 0.42); reset();
     }
@@ -83,7 +86,7 @@ private:
 class OnsetDetector {
 public:
     void prepare(double sampleRate) noexcept {
-        const double r = std::max(1000.0, detail::finite(sampleRate));
+        const double r = detail::safeSampleRate(sampleRate);
         fastPole_ = detail::pole(r, 1.5); slowPole_ = detail::pole(r, 30.0);
         cooldownSamples_ = std::max(1, static_cast<int>(r * 0.045)); reset();
     }
@@ -107,29 +110,45 @@ private:
 class FDNReverb {
 public:
     void prepare(double sampleRate) {
-        rate_ = std::max(1000.0, detail::finite(sampleRate));
+        ready_ = false;
+        rate_ = detail::safeSampleRate(sampleRate);
         constexpr std::array<double, 4> delays { .0297, .0371, .0411, .0437 };
         for (std::size_t i = 0; i < 4; ++i) {
             lengths_[i] = std::max<std::size_t>(31, static_cast<std::size_t>(rate_ * delays[i]) | 1U);
             lines_[i].assign(lengths_[i], 0.0f);
         }
         reset();
+        feedbackValid_ = false; // delay lengths changed with sample rate
         setParameters(decaySeconds_, damping_, wet_);
+        ready_ = true;
     }
     void reset() noexcept { positions_.fill(0); dampingState_.fill(0); for (auto& l : lines_) std::fill(l.begin(), l.end(), 0); }
     void setParameters(float decaySeconds, float damping, float wet) noexcept {
-        decaySeconds_ = static_cast<float>(detail::clamp(decaySeconds, .15, 20));
+        const float nextDecay = static_cast<float>(detail::clamp(decaySeconds, .15, 20));
         damping_ = static_cast<float>(detail::clamp(damping, 0, .98));
         wet_ = static_cast<float>(detail::clamp(wet, 0, 1));
-        for (std::size_t i = 0; i < 4; ++i)
-            feedback_[i] = static_cast<float>(std::exp(std::log(.001) * static_cast<double>(lengths_[i]) / (rate_ * decaySeconds_)));
+        dryGain_ = 1.f - wet_;
+        wetGain_ = wet_ * .45f;
+        dampingDrive_ = 1.f - damping_;
+        // FL Studio can repeat the same parameter value every audio block.
+        // Skip four costly exp() calls unless the decay or sample rate changes.
+        if (!feedbackValid_ || nextDecay != decaySeconds_) {
+            decaySeconds_ = nextDecay;
+            constexpr double logMinus60dB = -6.907755278982137052;
+            for (std::size_t i = 0; i < 4; ++i)
+                feedback_[i] = static_cast<float>(
+                    std::exp(logMinus60dB * static_cast<double>(lengths_[i]) / (rate_ * decaySeconds_)));
+            feedbackValid_ = true;
+        }
     }
     std::array<float, 2> processFrame(float left, float right) noexcept {
         const float inL = std::isfinite(left) ? left : 0, inR = std::isfinite(right) ? right : 0;
+        if (!ready_) return {inL, inR};
         std::array<float, 4> x {};
         for (std::size_t i = 0; i < 4; ++i) {
             x[i] = lines_[i][positions_[i]];
-            dampingState_[i] = (1 - damping_) * x[i] + damping_ * dampingState_[i];
+            dampingState_[i] = dampingDrive_ * x[i] + damping_ * dampingState_[i];
+            if (std::abs(dampingState_[i]) < 1.e-20f) dampingState_[i] = 0.f;
         }
         // Orthogonal normalized Hadamard feedback matrix.
         const std::array<float, 4> h {
@@ -145,13 +164,15 @@ public:
             lines_[i][positions_[i]] = next;
             if (++positions_[i] >= lengths_[i]) positions_[i] = 0;
         }
-        const float wetL = (x[0] + x[1] - x[2] - x[3]) * .45f;
-        const float wetR = (x[0] - x[1] + x[2] - x[3]) * .45f;
-        return {inL * (1 - wet_) + wet_ * wetL, inR * (1 - wet_) + wet_ * wetR};
+        const float wetL = x[0] + x[1] - x[2] - x[3];
+        const float wetR = x[0] - x[1] + x[2] - x[3];
+        return {inL * dryGain_ + wetGain_ * wetL, inR * dryGain_ + wetGain_ * wetR};
     }
 private:
     double rate_ = 48000;
     float decaySeconds_ = 2.5f, damping_ = .3f, wet_ = .25f;
+    float dryGain_ = .75f, wetGain_ = .1125f, dampingDrive_ = .7f;
+    bool ready_ = false, feedbackValid_ = false;
     std::array<std::vector<float>, 4> lines_;
     std::array<std::size_t, 4> lengths_ {31,31,31,31}, positions_ {};
     std::array<float, 4> feedback_ {}, dampingState_ {};
@@ -161,63 +182,104 @@ private:
 // Host must report latencySamples() for delay compensation. Processes mono/stereo.
 class TruePeakLimiter {
 public:
-    void prepare(double sampleRate, int channels = 2) {
-        rate_ = std::max(1000.0, detail::finite(sampleRate));
+    // Economy: 2 interpolated phases x 8 taps. Standard: 4 x 16.
+    // Neither mode is yet BS.1770 true-peak certified.
+    enum class Quality { Economy, Standard };
+    void prepare(double sampleRate, int channels = 2, Quality quality = Quality::Standard) {
+        ready_ = false;
+        rate_ = detail::safeSampleRate(sampleRate);
         channels_ = std::clamp(channels, 1, 2);
+        quality_ = quality;
+        activeTaps_ = quality == Quality::Economy ? 8 : taps;
+        activePhases_ = quality == Quality::Economy ? 2 : 4;
         delaySamples_ = std::max(48, static_cast<int>(rate_ * .003));
-        for (auto& b : delay_) b.assign(static_cast<std::size_t>(delaySamples_ + 1), 0);
-        for (int phase = 0; phase < 4; ++phase) {
-            double sum = 0;
-            for (int j = 0; j < taps; ++j) {
-                const double offset = j - 7.5 + phase * .25;
-                const double sinc = std::abs(offset) < 1e-10 ? 1.0 : std::sin(detail::pi * offset) / (detail::pi * offset);
-                const double window = .5 - .5 * std::cos(2 * detail::pi * j / (taps - 1));
-                kernel_[phase][j] = sinc * window; sum += kernel_[phase][j];
+        for (auto& b : delay_) b.assign(static_cast<std::size_t>(delaySamples_) + 1, 0.f);
+        for (auto& k : kernel_) k.fill(0.0);
+        for (int p = 0; p < activePhases_; ++p) {
+            const double offsetFraction = static_cast<double>(p) / activePhases_;
+            const double centre = (activeTaps_ - 1) * .5;
+            double sum = 0.0;
+            for (int j = 0; j < activeTaps_; ++j) {
+                const double offset = j - centre + offsetFraction;
+                const double sinc = std::abs(offset) < 1.e-10 ?
+                    1.0 : std::sin(detail::pi * offset) / (detail::pi * offset);
+                const double window = .5 - .5 * std::cos(2 * detail::pi * j / (activeTaps_ - 1));
+                kernel_[p][j] = sinc * window;
+                sum += kernel_[p][j];
             }
-            for (auto& k : kernel_[phase]) k /= sum;
+            for (int j = 0; j < activeTaps_; ++j) kernel_[p][j] /= sum;
         }
-        releasePole_ = detail::pole(rate_, 70);
+        releasePole_ = detail::pole(rate_, 70.0);
         reset();
+        ready_ = true;
     }
     void reset() noexcept {
-        for (auto& b : delay_) std::fill(b.begin(), b.end(), 0);
-        for (auto& h : history_) h.fill(0);
-        write_ = 0; historyWrite_ = 0; gain_ = 1; hold_ = 0;
+        for (auto& b : delay_) std::fill(b.begin(), b.end(), 0.f);
+        for (auto& h : history_) h.fill(0.0);
+        write_ = 0; historyWrite_ = 0; gain_ = 1.0; hold_ = 0;
     }
-    void setCeilingDb(float db) noexcept { ceiling_ = static_cast<float>(std::pow(10, detail::clamp(db, -24, 0) / 20)); }
-    int latencySamples() const noexcept { return delaySamples_; }
+    void setCeilingDb(float db) noexcept {
+        const float clamped = static_cast<float>(detail::clamp(db, -24, 0));
+        if (!ceilingValid_ || clamped != ceilingDb_) {
+            ceilingDb_ = clamped;
+            ceiling_ = std::pow(10.0, ceilingDb_ / 20.0);
+            ceilingValid_ = true;
+        }
+    }
+    int latencySamples() const noexcept { return ready_ ? delaySamples_ : 0; }
+    bool isPrepared() const noexcept { return ready_; }
+    Quality quality() const noexcept { return quality_; }
+    std::size_t estimatedWorkingBytes() const noexcept {
+        return 2 * (static_cast<std::size_t>(delaySamples_) + 1) * sizeof(float)
+             + sizeof(history_) + sizeof(kernel_);
+    }
     void processFrame(const float* input, float* output, int channels) noexcept {
-        const int count = std::min(channels_, std::max(0, channels));
-        double peak = 0;
+        if (!input || !output) return;
+        const int count = std::clamp(channels, 0, std::min(channels_, 2));
+        if (count == 0) return;
+        if (!ready_) {
+            for (int c = 0; c < count; ++c)
+                output[c] = static_cast<float>(detail::finite(input[c]));
+            return;
+        }
+        const int h = historyWrite_;
+        double peak = 0.0;
         for (int c = 0; c < count; ++c) {
-            const double s = detail::finite(input[c]);
-            delay_[c][write_] = static_cast<float>(s);
-            history_[c][historyWrite_] = s;
-            peak = std::max(peak, std::abs(s));
-            for (int phase = 0; phase < 4; ++phase) {
-                double v = 0;
-                for (int j = 0; j < taps; ++j)
-                    v += kernel_[phase][j] * history_[c][(historyWrite_ - j + taps) % taps];
-                peak = std::max(peak, std::abs(v));
+            const float sample = static_cast<float>(detail::finite(input[c]));
+            delay_[c][write_] = sample;
+            auto& hist = history_[c];
+            hist[h] = sample;
+            hist[h + taps] = sample; // mirrored delay: zero modulo in hot FIR loop
+            peak = std::max(peak, std::abs(static_cast<double>(sample)));
+            for (int phase = 0; phase < activePhases_; ++phase) {
+                const double* coeff = kernel_[phase].data();
+                double value = 0.0;
+                for (int j = 0; j < activeTaps_; ++j)
+                    value += coeff[j] * hist[h + taps - j];
+                peak = std::max(peak, std::abs(value));
             }
         }
-        historyWrite_ = (historyWrite_ + 1) % taps;
+        historyWrite_ = (h + 1) & (taps - 1);
         const double desired = peak > ceiling_ ? ceiling_ / peak : 1.0;
-        if (desired < gain_) { gain_ = desired; hold_ = delaySamples_ + taps; }
+        if (desired < gain_) { gain_ = desired; hold_ = delaySamples_ + activeTaps_; }
         else if (hold_ > 0) --hold_;
         else gain_ = releasePole_ * gain_ + (1.0 - releasePole_) * desired;
-        const std::size_t read = (write_ + 1) % delay_[0].size();
+        const std::size_t next = write_ + 1 == delay_[0].size() ? 0 : write_ + 1;
         for (int c = 0; c < count; ++c)
-            output[c] = static_cast<float>(delay_[c][read] * gain_);
-        write_ = read;
+            output[c] = static_cast<float>(delay_[c][next] * gain_);
+        write_ = next;
     }
 private:
     static constexpr int taps = 16;
-    double rate_ = 48000, ceiling_ = .891250938, gain_ = 1, releasePole_ = .999;
+    double rate_ = 48000.0, ceiling_ = .891250938, gain_ = 1.0, releasePole_ = .999;
     int channels_ = 2, delaySamples_ = 144, hold_ = 0, historyWrite_ = 0;
+    int activeTaps_ = taps, activePhases_ = 4;
     std::size_t write_ = 0;
+    bool ready_ = false, ceilingValid_ = false;
+    float ceilingDb_ = -1.f;
+    Quality quality_ = Quality::Standard;
     std::array<std::vector<float>, 2> delay_;
-    std::array<std::array<double, taps>, 2> history_ {};
+    std::array<std::array<double, taps * 2>, 2> history_ {};
     std::array<std::array<double, taps>, 4> kernel_ {};
 };
 

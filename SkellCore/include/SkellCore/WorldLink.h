@@ -90,7 +90,7 @@ private:
                     socket.close();
                     return;
                 }
-            const int ready=socket.waitUntilReady(true,75);
+            const int ready=socket.waitUntilReady(true,200);
             if (ready < 0) break;
             if (ready == 0) continue;
             std::array<char,256> bytes{};

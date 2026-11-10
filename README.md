@@ -3,6 +3,10 @@ Shared **Skell Audio** foundation for JUCE 8 C++17 VST3 plugins.
 
 The former Skell VST Quickstart is preserved as a **small gain demo plugin**, with its original VST3 manufacturer, plugin code and bundle identity unchanged. Build a new plugin by choosing unique IDs; never reuse these demo IDs in commercial releases.
 
+## Connected SKELL ecosystem
+
+**[SkellWorld](SkellWorld/README.md)** now adds an opt-in localhost presence/events hub to the shared foundation. Run `python tools/skellworld_hub.py`, then click JOIN WORLD in two quickstart plugin instances. Other SKELL products are catalogued for gradual adoption; **they are not yet connected automatically**. No audio-thread networking or remote parameter control.
+
 ## Contents
 - `SkellCore::DSP`: portable C++17 TempoClock, PhraseTracker, OnsetDetector, four-line FDNReverb, prototype 4× interpolated-peak limiter, PitchFormantEngine.
 - `SkellCore::UI`: JUCE LookAndFeel, colour themes and glow cache.

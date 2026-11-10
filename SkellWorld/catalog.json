@@ -1,0 +1,139 @@
+{
+  "schema": "skellworld-catalog/1",
+  "world": "SKELL",
+  "source": "User-owned GitHub SKELL repositories; catalog is an inventory, not proof of connectivity",
+  "core": "skellyruno/skell-vst-template",
+  "transport": "opt-in localhost only",
+  "plugins": [
+    {
+      "repository": "skellyruno/skell-autotune-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-delay-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-gate-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-rack-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-key-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-vst-template",
+      "product_id": "skellcore.quickstart",
+      "integration": "world-demo"
+    },
+    {
+      "repository": "skellyruno/skell-scratch-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-stop-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-eq-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-deesser-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-fan-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-separator-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-choir-vst",
+      "product_id": null,
+      "integration": "shared-core-only"
+    },
+    {
+      "repository": "skellyruno/skell-chess-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-spectre-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-maw-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-master-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skelltune-mini",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-necromancer-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-afar-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-spacer-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-silence-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-preset-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-flang-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-adliblab-vst",
+      "product_id": null,
+      "integration": "planned"
+    },
+    {
+      "repository": "skellyruno/skell-cast-vst",
+      "product_id": null,
+      "integration": "planned"
+    }
+  ]
+}

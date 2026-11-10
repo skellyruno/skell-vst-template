@@ -33,7 +33,7 @@ public:
     void leave() {
         requested_.store(false, std::memory_order_release);
         signalThreadShouldExit();
-        stopThread(3000); // worker socket reads have a 75ms poll limit
+        stopThread(3000); // 200ms read poll + bounded reconnect sleep
         online_.store(false, std::memory_order_release);
         peers_.store(0, std::memory_order_release);
     }
@@ -76,48 +76,55 @@ private:
         }
     }
     void run() override {
-        juce::StreamingSocket socket;
-        if (!socket.connect("127.0.0.1",defaultPort,500)) return;
-        Frame hello;
-        if (!make(hello,Kind::Hello,instance_,product_,display_) || !send(socket,hello)) return;
-        std::array<char,maxLine> line{};
-        std::size_t used=0;
+        // Once the user opts in, a hub restart should not strand a plugin.
+        // Retry slowly; never run retries on the audio or message thread.
         while (!threadShouldExit()) {
-            Frame outbound;
-            while (pending_.pop(outbound))
-                if (!send(socket,outbound)) {
-                    online_.store(false,std::memory_order_release);
-                    socket.close();
-                    return;
-                }
-            const int ready=socket.waitUntilReady(true,200);
-            if (ready < 0) break;
-            if (ready == 0) continue;
-            std::array<char,256> bytes{};
-            const int n=socket.read(bytes.data(),static_cast<int>(bytes.size()),false);
-            if (n <= 0) break;
-            for (int i=0;i<n;++i) {
-                const char c=bytes[static_cast<std::size_t>(i)];
-                if (used >= maxLine-1) {
-                    online_.store(false,std::memory_order_release);
-                    socket.close();
-                    return;
-                }
-                line[used++]=c;
-                if (c=='\n') {
-                    Frame inbound;
-                    if (!decode({line.data(),used},inbound)) {
-                        online_.store(false,std::memory_order_release);
-                        socket.close();
-                        return;
+            online_.store(false,std::memory_order_release);
+            peers_.store(0,std::memory_order_release);
+            juce::StreamingSocket socket;
+            if (socket.connect("127.0.0.1",defaultPort,500)) {
+                Frame hello;
+                if (make(hello,Kind::Hello,instance_,product_,display_) &&
+                    send(socket,hello)) {
+                    std::array<char,maxLine> line{};
+                    std::size_t used=0;
+                    bool validSession=true;
+                    while (validSession && !threadShouldExit()) {
+                        Frame outbound;
+                        while (pending_.pop(outbound)) {
+                            if (!send(socket,outbound)) { validSession=false; break; }
+                        }
+                        if (!validSession || threadShouldExit()) break;
+                        const int ready=socket.waitUntilReady(true,200);
+                        if (ready < 0) break;
+                        if (ready == 0) continue;
+                        std::array<char,256> bytes{};
+                        const int n=socket.read(bytes.data(),static_cast<int>(bytes.size()),false);
+                        if (n <= 0) break;
+                        for (int i=0;i<n;++i) {
+                            if (used >= maxLine-1) { validSession=false; break; }
+                            line[used++]=bytes[static_cast<std::size_t>(i)];
+                            if (line[used-1]=='\n') {
+                                Frame incoming;
+                                if (!decode({line.data(),used},incoming)) {
+                                    validSession=false;
+                                    break;
+                                }
+                                onFrame(incoming);
+                                used=0;
+                            }
+                        }
                     }
-                    onFrame(inbound);
-                    used=0;
                 }
+                socket.close();
             }
+            online_.store(false,std::memory_order_release);
+            peers_.store(0,std::memory_order_release);
+            // Do not replay stale theme/preset suggestions after reconnect.
+            Frame obsolete;
+            while (pending_.pop(obsolete)) {}
+            if (!threadShouldExit()) juce::Thread::sleep(1200);
         }
-        socket.close();
-        online_.store(false,std::memory_order_release);
     }
     Mailbox<32> pending_; // one UI producer, one worker consumer
     const std::string product_;

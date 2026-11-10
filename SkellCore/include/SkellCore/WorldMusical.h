@@ -17,7 +17,7 @@ struct MusicalKey {
 inline bool parseMusicalKey(std::string_view value, MusicalKey& out) noexcept {
     if (value.size()!=3 && value.size()!=4) return false;
     const auto dot=value.size()-2;
-    if(value[dot]!='.' || value.back()<'0' || value.back()>'1') return false;
+    if(value[dot]!='.' || value.back()<'0' || value.back()>'1' || (dot==2 && value[0]=='0')) return false;
     int root=0;
     for(std::size_t i=0;i<dot;++i) {
         if(value[i]<'0'||value[i]>'9')return false;

@@ -13,7 +13,7 @@ SkellWorld is the **connection layer** above SkellCore, not a replacement for th
 
 ## Try the first connected world
 
-In the template checkout, open a terminal:
+On Windows, double-click **`Start-SkellWorld.bat`** in the template folder (Python 3 must be installed). Alternatively, open a terminal in the template checkout:
 
 ```sh
 python tools/skellworld_hub.py

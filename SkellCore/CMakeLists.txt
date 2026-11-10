@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SkellCore VERSION 0.5.0 LANGUAGES CXX)
+project(SkellCore VERSION 0.6.0 LANGUAGES CXX)
 
 add_library(SkellCoreDSP INTERFACE)
 add_library(SkellCore::DSP ALIAS SkellCoreDSP)
@@ -57,6 +57,9 @@ if(SKELLCORE_BUILD_TESTS)
   add_executable(SkellWorldProtocolTests tests/test_world.cpp)
   target_link_libraries(SkellWorldProtocolTests PRIVATE SkellCore::DSP Threads::Threads)
   add_test(NAME SkellWorldProtocolTests COMMAND SkellWorldProtocolTests)
+  add_executable(SkellWorldMusicalTests tests/test_world_musical.cpp)
+  target_link_libraries(SkellWorldMusicalTests PRIVATE SkellCore::DSP)
+  add_test(NAME SkellWorldMusicalTests COMMAND SkellWorldMusicalTests)
 endif()
 
 option(SKELLCORE_BUILD_BENCHMARKS "Build opt-in SkellCore CPU benchmark (non-gating)" OFF)

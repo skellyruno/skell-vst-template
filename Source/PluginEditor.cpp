@@ -1,7 +1,7 @@
 #include "PluginEditor.h"
 
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
-    : AudioProcessorEditor(&p), gainAttachment(p.parameters, "gain", gain) {
+    : AudioProcessorEditor(&p), world_(p.worldLink), gainAttachment(p.parameters, "gain", gain) {
   // Compact vector UI; setLookAndFeel never touches the audio callback.
   setLookAndFeel(&skin_);
   setResizable(true, true);
@@ -29,7 +29,7 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
 
 SkellAudioProcessorEditor::~SkellAudioProcessorEditor() {
   stopTimer();
-  world_.leave();
+  // Keep connection alive when only the editor closes.
   setLookAndFeel(nullptr);
 }
 

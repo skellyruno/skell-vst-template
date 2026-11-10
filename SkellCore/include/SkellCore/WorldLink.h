@@ -53,7 +53,13 @@ private:
         std::array<char,maxLine> line{};
         std::size_t length=0;
         if (!encode(frame,line,length)) return false;
-        return socket.write(line.data(),static_cast<int>(length)) == static_cast<int>(length);
+        std::size_t sent=0;
+        while (sent < length && !threadShouldExit()) {
+            const int written=socket.write(line.data()+sent,static_cast<int>(length-sent));
+            if (written <= 0) return false;
+            sent += static_cast<std::size_t>(written);
+        }
+        return sent == length;
     }
     void onFrame(const Frame& frame) noexcept {
         if (frame.kind == Kind::Welcome && text(frame.instance) == "hub" &&
@@ -79,7 +85,11 @@ private:
         while (!threadShouldExit()) {
             Frame outbound;
             while (pending_.pop(outbound))
-                if (!send(socket,outbound)) { socket.close(); return; }
+                if (!send(socket,outbound)) {
+                    online_.store(false,std::memory_order_release);
+                    socket.close();
+                    return;
+                }
             const int ready=socket.waitUntilReady(true,75);
             if (ready < 0) break;
             if (ready == 0) continue;
@@ -88,11 +98,19 @@ private:
             if (n <= 0) break;
             for (int i=0;i<n;++i) {
                 const char c=bytes[static_cast<std::size_t>(i)];
-                if (used >= maxLine-1) { socket.close(); return; }
+                if (used >= maxLine-1) {
+                    online_.store(false,std::memory_order_release);
+                    socket.close();
+                    return;
+                }
                 line[used++]=c;
                 if (c=='\n') {
                     Frame inbound;
-                    if (!decode({line.data(),used},inbound)) { socket.close(); return; }
+                    if (!decode({line.data(),used},inbound)) {
+                        online_.store(false,std::memory_order_release);
+                        socket.close();
+                        return;
+                    }
                     onFrame(inbound);
                     used=0;
                 }

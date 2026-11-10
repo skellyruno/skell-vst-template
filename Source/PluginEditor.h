@@ -12,7 +12,7 @@ public:
 private:
   void timerCallback() override;
   skellcore::ui::LookAndFeel skin_;
-  skellcore::world::WorldLink world_{"skellcore.quickstart", "Skell Quickstart"};
+  skellcore::world::WorldLink& world_;
   juce::TextButton worldButton_{"JOIN WORLD"};
   juce::Label worldStatus_;
   juce::Slider gain;

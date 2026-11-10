@@ -37,6 +37,7 @@ def make_project(name: str, destination: Path, code: str,
             body = oldfile.read_text(encoding="utf-8")
             body = body.replace("SkellAudioProcessor", f"{target}AudioProcessor")
             body = body.replace("Skell Quickstart", name)
+            body = body.replace("skellcore.quickstart", f"skell.{slug}")
             (src / oldfile.name).write_text(body, encoding="utf-8")
         cmake = f'''cmake_minimum_required(VERSION 3.22)
 project({target} VERSION 1.0.0 LANGUAGES C CXX)
@@ -124,6 +125,20 @@ To build in GitHub, upload this generated folder as its own repository and run A
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """
         (destination / "README.md").write_text(text, encoding="utf-8")
+        # A stable, machine-readable identity for future SkellWorld cataloguing.
+        import json
+        world_manifest = {
+            "schema": "skellworld-plugin/1",
+            "product_id": f"skell.{slug}",
+            "name": name,
+            "manufacturer": "Skell Audio",
+            "plugin_code": code,
+            "bundle_id": bundle,
+            "connection": "explicit-opt-in-loopback",
+            "capabilities": ["presence", "informational-events"],
+        }
+        (destination / "skellworld.json").write_text(
+            json.dumps(world_manifest, indent=2) + "\n", encoding="utf-8")
         (destination / ".gitignore").write_text("/build/\n.vs/\n*.user\n", encoding="utf-8")
     except Exception:
         shutil.rmtree(destination)

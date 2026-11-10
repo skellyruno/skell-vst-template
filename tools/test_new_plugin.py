@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,6 +20,11 @@ class GeneratorTests(unittest.TestCase):
             self.assertIn('audio.skell.skellcompressor', (dest / "CMakeLists.txt").read_text())
             self.assertIn(module.DEFAULT_REV, (dest / "CMakeLists.txt").read_text())
             self.assertIn("SkellCompressorAudioProcessor", (dest / "Source" / "PluginProcessor.cpp").read_text())
+            self.assertIn('skell.skellcompressor', (dest / "Source" / "PluginProcessor.h").read_text())
+            self.assertIn('SkellCompressor', (dest / "Source" / "PluginProcessor.h").read_text())
+            manifest=json.loads((dest / "skellworld.json").read_text())
+            self.assertEqual(manifest["product_id"],"skell.skellcompressor")
+            self.assertEqual(manifest["plugin_code"],"SC01")
             self.assertIn("smoothedGain_", (dest / "Source" / "PluginProcessor.h").read_text())
             self.assertIn("Skell Compressor", (dest / "Source" / "PluginEditor.cpp").read_text())
             self.assertIn("setResizable(true, true)", (dest / "Source" / "PluginEditor.cpp").read_text())

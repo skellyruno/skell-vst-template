@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include <SkellCore/WorldLink.h>
 class SkellAudioProcessor final : public juce::AudioProcessor {
 public:
   SkellAudioProcessor();
@@ -21,6 +22,9 @@ public:
   void changeProgramName(int, const juce::String&) override {}
   void getStateInformation(juce::MemoryBlock&) override;
   void setStateInformation(const void*, int) override;
+  // Persists for the plugin instance, even if its editor closes.
+  // No connection is attempted unless the user explicitly joins.
+  skellcore::world::WorldLink worldLink{"skellcore.quickstart", "Skell Quickstart"};
   juce::AudioProcessorValueTreeState parameters;
   static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 private:

@@ -11,6 +11,9 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(len(names),len(set(names)))
         self.assertTrue(all(name.startswith("skellyruno/skell") for name in names))
         self.assertEqual(len([p for p in d["plugins"] if p["integration"]=="world-demo"]),1)
+        codes=[p["vst3_code"].lower() for p in d["plugins"] if p.get("vst3_code")]
+        self.assertEqual(len(codes),len(set(codes)))
+        self.assertGreaterEqual(len(codes),22)
         self.assertTrue(all(p["integration"] in {"planned","shared-core-only","world-demo"} for p in d["plugins"]))
     def test_demo_identity(self):
         d=json.loads((ROOT/"skellworld.json").read_text())

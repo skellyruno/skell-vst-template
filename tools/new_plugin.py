@@ -2,6 +2,7 @@
 """Generate an independent JUCE VST3 project that pins, but does not copy, SkellCore."""
 import argparse
 import hashlib
+import json
 import re
 import shutil
 from pathlib import Path
@@ -14,6 +15,15 @@ def make_project(name: str, destination: Path, code: str,
                  core_rev: str = DEFAULT_REV, core_repo: str = DEFAULT_REPO):
     if not re.fullmatch(r"[A-Za-z0-9]{4}", code):
         raise ValueError("--code must be exactly four ASCII letters/digits, unique to this plugin")
+    # Prevent collisions with known VST3 product codes from existing SKELL
+    # repositories. A collision could confuse hosts and saved projects.
+    registry_path = ROOT / "SkellWorld" / "catalog.json"
+    if registry_path.is_file():
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+        for entry in registry.get("plugins", []):
+            registered = entry.get("vst3_code")
+            if registered and registered.lower() == code.lower():
+                raise ValueError(f"Plugin code {code} is already used by {entry['repository']}")
     if not re.fullmatch(r"[0-9a-fA-F]{40}", core_rev):
         raise ValueError("SkellCore revision must be an immutable 40-character commit SHA")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_ ]{1,79}", name):
@@ -131,7 +141,6 @@ Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """
         (destination / "README.md").write_text(text, encoding="utf-8")
         # A stable, machine-readable identity for future SkellWorld cataloguing.
-        import json
         world_manifest = {
             "schema": "skellworld-plugin/1",
             "product_id": world_id,

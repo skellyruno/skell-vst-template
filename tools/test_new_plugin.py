@@ -44,7 +44,7 @@ class GeneratorTests(unittest.TestCase):
     def test_invalid_identity(self):
         with tempfile.TemporaryDirectory() as root:
             dest = Path(root) / "bad"
-            for invalid in ["123", "abcde", "x#01", "😼😼😼😼"]:
+            for invalid in ["123", "abcde", "x#01", "😼😼😼😼", "Sk01", "FL26"]:
                 with self.assertRaises(ValueError):
                     module.make_project("Skell Test", dest, invalid)
             self.assertFalse(dest.exists())

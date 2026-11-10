@@ -9,7 +9,7 @@ SkellWorld is the **connection layer** above SkellCore, not a replacement for th
 - **Local hub** — `tools/skellworld_hub.py` relays presence events across different plugin processes, plus *informational* events for theme, preset name, transport and level. It binds only to IPv4 loopback `127.0.0.1:48673`.
 - **JUCE bridge** — `SkellCore/WorldLink.h` connects from a worker thread. No sockets, locks, Python or allocations are added to an audio-processing callback. A JOIN/LEAVE control in the template provides explicit consent.
 - **Lifecycle** — the connection is owned by the plugin processor. Closing or reopening its editor does not disconnect a joined instance.
-- **Catalog** — `catalog.json` inventories SKELL GitHub plugin repositories; entries marked `planned` are **not** yet connected.
+- **Catalog** — `catalog.json` inventories SKELL GitHub plugin repositories, including best-effort VST3 plugin-code/bundle metadata. Entries marked `planned` are **not** yet connected. The generator refuses codes that collide with catalogued products.
 
 ## Try the first connected world
 

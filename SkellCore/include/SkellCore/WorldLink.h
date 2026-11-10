@@ -2,6 +2,7 @@
 // SkellWorld optional localhost link. UI/worker-thread ONLY.
 // Never create, start, stop or publish from processBlock().
 #include <SkellCore/World.h>
+#include <SkellCore/WorldMusical.h>
 #include <juce_core/juce_core.h>
 #include <atomic>
 #include <array>
@@ -40,6 +41,21 @@ public:
     bool requested() const noexcept { return requested_.load(std::memory_order_acquire); }
     bool online() const noexcept { return online_.load(std::memory_order_acquire); }
     int peerCount() const noexcept { return peers_.load(std::memory_order_acquire); }
+    // UI timer only: informational key, valid only while connected and the
+    // sending peer is registered as skell.key. Callers must explicitly opt in.
+    bool latestMusicalKey(MusicalKey& key, std::uint64_t& version) const noexcept {
+        if(!online()) return false;
+        const auto word=lastKey_.load(std::memory_order_acquire);
+        const int encoded=int(word & 255u);
+        key=unpackMusicalKey(encoded);
+        version=word>>8;
+        return key.valid() && version!=0;
+    }
+    bool publishMusicalKey(MusicalKey key) noexcept {
+        if(!key.valid()) return false;
+        const auto payload=formatMusicalKey(key);
+        return publish("musical.key",payload.data());
+    }
 
     // UI-thread event publishing only; informational data, never remote controls.
     bool publish(std::string_view topic, std::string_view value) noexcept {
@@ -67,11 +83,44 @@ private:
             online_.store(true, std::memory_order_release);
         } else if (frame.kind == Kind::Peer) {
             if (text(frame.value) == "online") {
+                // Remember sender product IDs; unauthenticated local events
+                // must not drive key/scale controls by default.
+                bool present=false;
+                for (const auto& item : peerInfo_) {
+                    if (item.kind==Kind::Peer && text(item.instance)==text(frame.instance))
+                        present=true;
+                }
+                if (!present) for (auto& item : peerInfo_) {
+                    if(item.kind==Kind::Invalid) { item=frame; break; }
+                }
                 const auto current=peers_.load(std::memory_order_relaxed);
                 if (current < 32) peers_.store(current+1,std::memory_order_release);
             } else if (text(frame.value) == "offline") {
+                for(auto& item : peerInfo_) {
+                    if(item.kind==Kind::Peer && text(item.instance)==text(frame.instance))
+                        item=Frame{};
+                }
+                if(text(frame.instance)==text(lastKeySource_)) {
+                    lastKey_.store(0,std::memory_order_release);
+                    lastKeySource_.fill(0);
+                }
                 const auto current=peers_.load(std::memory_order_relaxed);
                 if (current > 0) peers_.store(current-1,std::memory_order_release);
+            }
+        } else if (frame.kind==Kind::Event && text(frame.topic)=="musical.key") {
+            // The broker reports source identity separately in PEER frames.
+            // Only the registered SkellKey product may suggest musical keys.
+            bool isKeySource=false;
+            for (const auto& item : peerInfo_) {
+                if(item.kind==Kind::Peer && text(item.instance)==text(frame.instance) &&
+                   text(item.topic)=="skell.key") {isKeySource=true;break;}
+            }
+            MusicalKey key;
+            if(isKeySource && parseMusicalKey(text(frame.value),key)) {
+                lastKeySource_=frame.instance;
+                const auto counter=++keySequence_;
+                lastKey_.store((counter<<8)|static_cast<std::uint64_t>(key.packed()),
+                               std::memory_order_release);
             }
         }
     }
@@ -81,6 +130,9 @@ private:
         while (!threadShouldExit()) {
             online_.store(false,std::memory_order_release);
             peers_.store(0,std::memory_order_release);
+            lastKey_.store(0,std::memory_order_release);
+            lastKeySource_.fill(0);
+            for(auto& item:peerInfo_) item=Frame{};
             juce::StreamingSocket socket;
             if (socket.connect("127.0.0.1",defaultPort,500)) {
                 Frame hello;
@@ -120,12 +172,18 @@ private:
             }
             online_.store(false,std::memory_order_release);
             peers_.store(0,std::memory_order_release);
+            lastKey_.store(0,std::memory_order_release);
             // Do not replay stale theme/preset suggestions after reconnect.
             Frame obsolete;
             while (pending_.pop(obsolete)) {}
             if (!threadShouldExit()) juce::Thread::sleep(1200);
         }
     }
+    // Peer registry and source identity are only touched on this worker.
+    std::array<Frame,32> peerInfo_{};
+    std::array<char,48> lastKeySource_{};
+    std::uint64_t keySequence_=0;
+    std::atomic<std::uint64_t> lastKey_{0};
     Mailbox<32> pending_; // one UI producer, one worker consumer
     const std::string product_;
     const std::string display_;

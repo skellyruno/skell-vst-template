@@ -61,6 +61,25 @@ class WorldHubTests(unittest.TestCase):
         bf.readline(256);af.readline(256)
         a.sendall(hub.encode("EVENT","one","plugin.setParameter","gain=9"))
         self.assertEqual(hub.decode(bf.readline(256)),["PEER","one","skell.eq","offline"])
+    def test_only_skell_key_can_send_musical_key(self):
+        sender, sf = self.peer("key-01", "skell.key")
+        receiver, rf = self.peer("tune-01", "skell.tune")
+        # Clear expected peer announcements.
+        sf.readline(256); rf.readline(256)
+        sender.sendall(hub.encode("EVENT","key-01","musical.key","11.1"))
+        self.assertEqual(hub.decode(rf.readline(256)),
+                         ["EVENT","key-01","musical.key","11.1"])
+        # Wrong product cannot impersonate the musical key sender.
+        receiver.sendall(hub.encode("EVENT","tune-01","musical.key","0.0"))
+        self.assertEqual(hub.decode(sf.readline(256))[:2], ["PEER","tune-01"])
+
+    def test_bad_key_payload_disconnects(self):
+        sender, sf = self.peer("key-01", "skell.key")
+        listener, lf = self.peer("tune-01", "skell.tune")
+        sf.readline(256); lf.readline(256)
+        sender.sendall(hub.encode("EVENT","key-01","musical.key","12.1"))
+        self.assertEqual(hub.decode(lf.readline(256))[:2], ["PEER","key-01"])
+
     def test_loopback_only(self):
         self.assertEqual(self.server.server_address[0],"127.0.0.1")
 

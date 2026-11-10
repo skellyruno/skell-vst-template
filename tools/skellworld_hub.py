@@ -127,7 +127,7 @@ class WorldHandler(socketserver.BaseRequestHandler):
                             # a valid C..B major/minor suggestion; followers opt in.
                             with self.server.guard:
                                 product = self.server.peers.get(self, ("", ""))[1]
-                            if product != "skell.key" or not re.fullmatch(r"(?:[0-9]|1[01])\\.[01]", value):
+                            if product != "skell.key" or not re.fullmatch(r"(?:[0-9]|1[01])\.[01]", value):
                                 break
                         self.server.broadcast(self, encode("EVENT", ident, topic, value))
                     elif kind == "BYE":

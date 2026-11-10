@@ -17,6 +17,18 @@ if(TARGET juce::juce_gui_basics)
   target_link_libraries(SkellCoreUI INTERFACE juce::juce_gui_basics juce::juce_audio_processors)
 endif()
 
+# Editor screenshot utility: optional; the portable DSP targets remain JUCE-free.
+if(TARGET SkellCoreUI AND TARGET juce::juce_graphics)
+  add_library(SkellCoreRendererSupport INTERFACE)
+  add_library(SkellCore::UIRenderer ALIAS SkellCoreRendererSupport)
+  target_compile_features(SkellCoreRendererSupport INTERFACE cxx_std_17)
+  target_include_directories(SkellCoreRendererSupport INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+  target_link_libraries(SkellCoreRendererSupport INTERFACE
+    SkellCore::UI juce::juce_graphics juce::juce_gui_basics)
+endif()
+
 option(SKELLCORE_BUILD_TESTS "Build portable SkellCore DSP tests" OFF)
 if(SKELLCORE_BUILD_TESTS)
   enable_testing()

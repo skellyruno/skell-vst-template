@@ -28,3 +28,17 @@ target_compile_definitions(SkellPlugin PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=
 target_link_libraries(SkellPlugin PRIVATE juce::juce_audio_utils juce::juce_audio_processors juce::juce_gui_extra)
 
 target_link_libraries(SkellPlugin PRIVATE SkellCore::DSP SkellCore::UI)
+
+# Optional real-editor renderer. No DAW, audio hardware or mock editor required.
+option(SKELLCORE_BUILD_UI_RENDERER "Build template editor screenshot smoke test" OFF)
+if(SKELLCORE_BUILD_UI_RENDERER)
+  add_executable(SkellCoreUISmokeRenderer tools/SkellCoreUiRendererMain.cpp)
+  target_include_directories(SkellCoreUISmokeRenderer PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/SkellPlugin_artefacts/JuceLibraryCode")
+  target_link_libraries(SkellCoreUISmokeRenderer PRIVATE
+    SkellPlugin SkellCore::DSP SkellCore::UIRenderer
+    juce::juce_audio_utils juce::juce_gui_extra)
+  target_compile_definitions(SkellCoreUISmokeRenderer PRIVATE
+    JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_compile_features(SkellCoreUISmokeRenderer PRIVATE cxx_std_17)
+endif()

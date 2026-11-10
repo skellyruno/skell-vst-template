@@ -82,3 +82,11 @@ These are **versioned reference copies** and must not be silently rolled forward
 ## v0.3 low-CPU and safety testing
 
 See [PERFORMANCE.md](PERFORMANCE.md) for Economy versus Standard filter cost, Linux/Windows real-time safety tests, ASan/UBSan, zero-allocation checks, reference-output parity and GitHub runner benchmarks. These measurements are not a guarantee on an older physical PC.
+
+## Shared headless JUCE renderer
+
+The reusable `SkellCore::UIRenderer` target and `<SkellCore/HeadlessUIRenderer.h>`
+provide screenshot capture, image/size validation, scene matrices, and layout-test hooks
+for **real** plugin editors. The opt-in template smoke executable verifies three sizes.
+See [docs/UI_RENDERER.md](../docs/UI_RENDERER.md). Portable SkellCore DSP builds
+remain independent of JUCE and X11.

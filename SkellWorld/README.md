@@ -66,3 +66,11 @@ python -m unittest discover -s SkellWorld/tests -v
 ```
 
 Windows VST3 and Standalone builds compile the JUCE WorldLink. A real two-instance FL Studio smoke test is still needed before declaring DAW-level integration complete.
+
+## SkellKey ↔ SkellyTune musical connection (SkellCore v0.6)
+
+SkellCore provides `WorldMusical.h`, a canonical `root.mode` payload (C=0 through B=11; major=0, natural minor=1), and `WorldLink::publishMusicalKey` / `latestMusicalKey`. The hub only accepts `musical.key` events from a peer registered as `skell.key` and validates payloads. A tuner must explicitly opt into **FOLLOW SKELL KEY** before interpreting an incoming event; v1 is **not authenticated** and must not be used for arbitrary commands or privileged controls.
+
+`SkullTheme.h` shares four UI skins and the original vector skull-key emblem from SkellKey; palette selection is per plugin instance and performed only on the message/UI thread. The skins are Ossuary (existing SkellKey colors), Neon, Ivory and Obsidian.
+
+These foundational APIs are independent of the current SkellyTune DSP and do not add host parameters, network traffic in `processBlock`, or alter preset/latency contracts. Individual Key and Tune repositories must adopt the API in separate tested PRs.

@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include <SkellCore/SkullTheme.h>
 
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
     : AudioProcessorEditor(&p), world_(p.worldLink), gainAttachment(p.parameters, "gain", gain) {
@@ -45,8 +46,9 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
   g.fillRoundedRectangle(panel, 12.f);
   g.setColour(theme.accent.withAlpha(.52f));
   g.drawRoundedRectangle(panel, 12.f, 1.25f);
-  g.setColour(theme.accent.withAlpha(.86f));
-  g.fillRoundedRectangle(juce::Rectangle<float>(25.f, 25.f, 34.f, 3.f), 1.5f);
+  // One shared skull-key vector, extracted from SkellKey's actual header.
+  const auto keyPalette = skellcore::ui::skullPalette(skellcore::ui::SkullSkin::Ossuary);
+  skellcore::ui::drawSkullKeyMark(g, 25.f, 15.f, keyPalette.bone, theme.surface);
   g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
   g.setColour(theme.secondary);
   g.drawFittedText("SKELLCORE  /  VST TEMPLATE",

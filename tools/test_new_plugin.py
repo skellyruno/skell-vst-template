@@ -33,6 +33,14 @@ class GeneratorTests(unittest.TestCase):
             self.assertFalse((dest / "SkellCore").exists())
             with self.assertRaises(FileExistsError):
                 module.make_project("Skell Compressor", dest, "SC01")
+    def test_long_product_name_gets_bounded_stable_world_id(self):
+        with tempfile.TemporaryDirectory() as root:
+            name = "Skell " + "Extreme" * 10
+            path = Path(root) / "long"
+            module.make_project(name, path, "SX11")
+            product_id = json.loads((path / "skellworld.json").read_text())["product_id"]
+            self.assertLess(len(product_id), 48)
+            self.assertIn(product_id, (path / "Source" / "PluginProcessor.h").read_text())
     def test_invalid_identity(self):
         with tempfile.TemporaryDirectory() as root:
             dest = Path(root) / "bad"

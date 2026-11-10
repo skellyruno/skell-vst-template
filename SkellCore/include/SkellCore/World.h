@@ -3,6 +3,7 @@
 // No networking, allocation, mutex or DSP changes in this header.
 #include <array>
 #include <atomic>
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -66,11 +67,11 @@ inline bool make(Frame& out, Kind kind, std::string_view instance,
     out = result;
     return true;
 }
-inline std::string_view text(const std::array<char,48>& s) noexcept {
-    return {s.data(), std::strlen(s.data())};
-}
-inline std::string_view text(const std::array<char,96>& s) noexcept {
-    return {s.data(), std::strlen(s.data())};
+template<std::size_t N>
+inline std::string_view text(const std::array<char,N>& s) noexcept {
+    const auto terminator = std::find(s.begin(), s.end(), '\0');
+    if (terminator == s.end()) return {};
+    return {s.data(), static_cast<std::size_t>(terminator - s.begin())};
 }
 // Only invoke on the UI/background side; encoding is NEVER an audio-thread API.
 inline bool encode(const Frame& f, std::array<char,maxLine>& target, std::size_t& length) noexcept {

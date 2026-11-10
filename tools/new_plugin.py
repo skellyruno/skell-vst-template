@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Generate an independent JUCE VST3 project that pins, but does not copy, SkellCore."""
 import argparse
+import hashlib
 import re
 import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "e253b630b6b1e02f95a751b428f99542439f4018"
+DEFAULT_REV = "67f0d5d98b16aeea8c9cd06c6157b7857e0cab3b"
 DEFAULT_REPO = "https://github.com/skellyruno/skell-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,
@@ -21,6 +22,10 @@ def make_project(name: str, destination: Path, code: str,
     if not target or not re.match(r"[A-Za-z]", target[0]):
         raise ValueError("Invalid project target")
     slug = re.sub(r"[^a-z0-9]+", "", name.lower())
+    # The World wire identifier is max 47 characters. Keep long names
+    # deterministic and collision-resistant without changing the bundle ID.
+    short_slug = slug if len(slug) <= 41 else slug[:30] + hashlib.sha256(slug.encode()).hexdigest()[:10]
+    world_id = f"skell.{short_slug}"
     bundle = f"audio.skell.{slug}"
     destination = destination.resolve()
     if destination.exists():
@@ -37,6 +42,7 @@ def make_project(name: str, destination: Path, code: str,
             body = oldfile.read_text(encoding="utf-8")
             body = body.replace("SkellAudioProcessor", f"{target}AudioProcessor")
             body = body.replace("Skell Quickstart", name)
+            body = body.replace("skellcore.quickstart", world_id)
             (src / oldfile.name).write_text(body, encoding="utf-8")
         cmake = f'''cmake_minimum_required(VERSION 3.22)
 project({target} VERSION 1.0.0 LANGUAGES C CXX)
@@ -124,6 +130,20 @@ To build in GitHub, upload this generated folder as its own repository and run A
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """
         (destination / "README.md").write_text(text, encoding="utf-8")
+        # A stable, machine-readable identity for future SkellWorld cataloguing.
+        import json
+        world_manifest = {
+            "schema": "skellworld-plugin/1",
+            "product_id": world_id,
+            "name": name,
+            "manufacturer": "Skell Audio",
+            "plugin_code": code,
+            "bundle_id": bundle,
+            "connection": "explicit-opt-in-loopback",
+            "capabilities": ["presence", "informational-events"],
+        }
+        (destination / "skellworld.json").write_text(
+            json.dumps(world_manifest, indent=2) + "\n", encoding="utf-8")
         (destination / ".gitignore").write_text("/build/\n.vs/\n*.user\n", encoding="utf-8")
     except Exception:
         shutil.rmtree(destination)

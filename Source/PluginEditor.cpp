@@ -1,7 +1,7 @@
 #include "PluginEditor.h"
 
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
-    : AudioProcessorEditor(&p), gainAttachment(p.parameters, "gain", gain) {
+    : AudioProcessorEditor(&p), world_(p.worldLink), gainAttachment(p.parameters, "gain", gain) {
   // Compact vector UI; setLookAndFeel never touches the audio callback.
   setLookAndFeel(&skin_);
   setResizable(true, true);
@@ -13,10 +13,23 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   gain.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 90, 24);
   addAndMakeVisible(title);
   addAndMakeVisible(gain);
-  setSize(460, 292);
+  worldButton_.onClick = [this] {
+    if (world_.requested()) world_.leave();
+    else world_.join(); // explicit only: never at plugin load
+    timerCallback();
+  };
+  worldStatus_.setJustificationType(juce::Justification::centredLeft);
+  worldStatus_.setFont(juce::Font(juce::FontOptions(11.0f)));
+  addAndMakeVisible(worldButton_);
+  addAndMakeVisible(worldStatus_);
+  startTimerHz(4); // UI/status only, never processBlock
+  setResizeLimits(390, 250, 840, 560);
+  setSize(480, 330);
 }
 
 SkellAudioProcessorEditor::~SkellAudioProcessorEditor() {
+  stopTimer();
+  // Keep connection alive when only the editor closes.
   setLookAndFeel(nullptr);
 }
 
@@ -45,13 +58,26 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
                    juce::Justification::centred, 1);
   g.setColour(theme.secondary.withAlpha(.82f));
   g.setFont(juce::Font(juce::FontOptions(10.0f)));
-  g.drawFittedText("SHARED DSP  |  REALTIME SAFE",
+  g.drawFittedText("SKELLWORLD  |  OPTIONAL LOCAL CONNECTION",
       28, getHeight() - 31, getWidth()-56, 16, juce::Justification::centred, 1);
 }
 
 void SkellAudioProcessorEditor::resized() {
   const int w = getWidth(), h = getHeight();
   title.setBounds(30, 48, w-60, 30);
-  const int knobSize = juce::jmin(156, juce::jmax(76, h-152));
+  const int knobSize = juce::jmin(156, juce::jmax(70, h-195));
   gain.setBounds((w-knobSize)/2, 103, knobSize, knobSize);
+  worldButton_.setBounds(w/2 - 151, h-77, 122, 29);
+  worldStatus_.setBounds(w/2 - 22, h-77, 170, 29);
+}
+
+void SkellAudioProcessorEditor::timerCallback() {
+  const bool joined=world_.requested();
+  worldButton_.setButtonText(joined ? "LEAVE WORLD" : "JOIN WORLD");
+  if (world_.online())
+    worldStatus_.setText("WORLD ONLINE  |  " + juce::String(world_.peerCount()) + " peers",
+                         juce::dontSendNotification);
+  else
+    worldStatus_.setText(joined ? "HUB NOT RUNNING" : "OFFLINE",
+                         juce::dontSendNotification);
 }

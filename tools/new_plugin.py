@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate an independent JUCE VST3 project that pins, but does not copy, SkellCore."""
 import argparse
+import hashlib
 import re
 import shutil
 from pathlib import Path
@@ -21,6 +22,10 @@ def make_project(name: str, destination: Path, code: str,
     if not target or not re.match(r"[A-Za-z]", target[0]):
         raise ValueError("Invalid project target")
     slug = re.sub(r"[^a-z0-9]+", "", name.lower())
+    # The World wire identifier is max 47 characters. Keep long names
+    # deterministic and collision-resistant without changing the bundle ID.
+    short_slug = slug if len(slug) <= 41 else slug[:30] + hashlib.sha256(slug.encode()).hexdigest()[:10]
+    world_id = f"skell.{short_slug}"
     bundle = f"audio.skell.{slug}"
     destination = destination.resolve()
     if destination.exists():
@@ -37,7 +42,7 @@ def make_project(name: str, destination: Path, code: str,
             body = oldfile.read_text(encoding="utf-8")
             body = body.replace("SkellAudioProcessor", f"{target}AudioProcessor")
             body = body.replace("Skell Quickstart", name)
-            body = body.replace("skellcore.quickstart", f"skell.{slug}")
+            body = body.replace("skellcore.quickstart", world_id)
             (src / oldfile.name).write_text(body, encoding="utf-8")
         cmake = f'''cmake_minimum_required(VERSION 3.22)
 project({target} VERSION 1.0.0 LANGUAGES C CXX)
@@ -129,7 +134,7 @@ Do not reuse the same plugin code or bundle ID in two shipping plugins.
         import json
         world_manifest = {
             "schema": "skellworld-plugin/1",
-            "product_id": f"skell.{slug}",
+            "product_id": world_id,
             "name": name,
             "manufacturer": "Skell Audio",
             "plugin_code": code,

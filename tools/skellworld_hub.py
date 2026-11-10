@@ -81,7 +81,8 @@ class WorldServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class WorldHandler(socketserver.BaseRequestHandler):
     def handle(self):
-        self.request.settimeout(2.0)
+        # Require HELLO promptly; an established local plugin may idle for hours.
+        self.request.settimeout(3.0)
         ident = None
         product = None
         count, window = 0, time.monotonic()
@@ -112,6 +113,7 @@ class WorldHandler(socketserver.BaseRequestHandler):
                             self.request.sendall(encode("ERROR", "hub", "status", "capacity_or_duplicate"))
                             break
                         ident, product = who, topic
+                        self.request.settimeout(None)  # idle links stay connected
                         self.request.sendall(encode("WELCOME", "hub", "status", "connected"))
                         for peer, (pident, pproduct) in existing:
                             self.request.sendall(encode("PEER", pident, pproduct, "online"))

@@ -30,6 +30,11 @@ class GeneratorTests(unittest.TestCase):
             self.assertIn("setResizable(true, true)", (dest / "Source" / "PluginEditor.cpp").read_text())
             self.assertIn("FORMATS VST3 Standalone", (dest / "CMakeLists.txt").read_text())
             self.assertTrue((dest / ".github/workflows/build.yml").exists())
+            self.assertTrue((dest / ".github/workflows/ui-renderer.yml").exists())
+            self.assertTrue((dest / "tools/UiRendererMain.cpp").exists())
+            self.assertIn("SkellCompressorAudioProcessor", (dest / "tools/UiRendererMain.cpp").read_text())
+            self.assertIn("SkellCore::UIRenderer", (dest / "CMakeLists.txt").read_text())
+            self.assertIn("SkellCompressorUIRenderer", (dest / "CMakeLists.txt").read_text())
             self.assertFalse((dest / "SkellCore").exists())
             with self.assertRaises(FileExistsError):
                 module.make_project("Skell Compressor", dest, "SC01")

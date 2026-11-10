@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "214badd41c05bfcc7d7528dba5b5984a6d607cc3"
+DEFAULT_REV = "5ac8e885f1563f804c66072797b7038bc2939fae"
 DEFAULT_REPO = "https://github.com/skellyruno/skell-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,
@@ -89,6 +89,26 @@ target_compile_definitions({target} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 J
 target_link_libraries({target} PRIVATE SkellCore::DSP SkellCore::UI
     juce::juce_audio_utils juce::juce_audio_processors juce::juce_gui_extra)
 '''
+        # Screenshot harness is opt-in: real generated editor, no VST3 host.
+        cmake += f"""
+option(SKELLCORE_BUILD_UI_RENDERER "Build real JUCE editor screenshots" OFF)
+if(SKELLCORE_BUILD_UI_RENDERER)
+  add_executable({target}UIRenderer tools/UiRendererMain.cpp)
+  target_include_directories({target}UIRenderer PRIVATE
+      "${{CMAKE_CURRENT_BINARY_DIR}}/{target}_artefacts/JuceLibraryCode")
+  target_link_libraries({target}UIRenderer PRIVATE {target} SkellCore::UIRenderer
+      SkellCore::DSP juce::juce_audio_utils juce::juce_gui_extra)
+  target_compile_definitions({target}UIRenderer PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_compile_features({target}UIRenderer PRIVATE cxx_std_17)
+endif()
+"""
+        ui_tools = destination / "tools"
+        ui_tools.mkdir()
+        renderer_source = (ROOT / "tools" / "SkellCoreUiRendererMain.cpp").read_text(encoding="utf-8")
+        renderer_source = renderer_source.replace("SkellAudioProcessor", f"{target}AudioProcessor")
+        renderer_source = renderer_source.replace("SkellCore template quickstart", name)
+        renderer_source = renderer_source.replace("quickstart_", "plugin_")
+        (ui_tools / "UiRendererMain.cpp").write_text(renderer_source, encoding="utf-8")
         (destination / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
         workflow = '''name: Build Windows VST3
 on:
@@ -120,6 +140,40 @@ jobs:
         wf = destination / ".github" / "workflows"
         wf.mkdir(parents=True)
         (wf / "build.yml").write_text(workflow, encoding="utf-8")
+        ui_workflow = """name: Headless JUCE UI screenshots
+on:
+  push:
+    branches: [main]
+    paths: ['CMakeLists.txt', 'Source/**', 'tools/UiRendererMain.cpp', '.github/workflows/ui-renderer.yml']
+  pull_request:
+  workflow_dispatch:
+jobs:
+  render:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure actual-editor renderer
+        run: cmake -S . -B build -A x64 -DSKELLCORE_BUILD_UI_RENDERER=ON
+      - name: Build actual-editor renderer
+        run: cmake --build build --config Release --target __RENDERER__ --parallel 2
+      - name: Capture real JUCE editor
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build -Recurse -File -Filter __RENDERER__.exe | Select-Object -First 1
+          if (-not $exe) { throw 'Renderer executable missing' }
+          & $exe.FullName (Join-Path (Get-Location) 'ui-screenshots')
+          if ($LASTEXITCODE -ne 0) { throw "Renderer failed: $LASTEXITCODE" }
+          if (@(Get-ChildItem ui-screenshots -Filter *.png).Count -ne 3) { throw 'Expected three screenshot PNGs' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Skell-UI-Screenshots
+          path: ui-screenshots/*
+          if-no-files-found: error
+"""
+        ui_workflow = ui_workflow.replace("__RENDERER__", f"{target}UIRenderer")
+        (wf / "ui-renderer.yml").write_text(ui_workflow, encoding="utf-8")
+
         text = f"""# {name}
 Generated from SkellCore VST Template. The original demo processing is a gain knob.
 
@@ -135,7 +189,7 @@ cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
 cmake --build build --config Release
 ```
 
-SkellCore is fetched by a pinned commit. Only update that pin after testing.
+SkellCore is fetched by a pinned commit. Only update that pin after testing.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
 To build in GitHub, upload this generated folder as its own repository and run Actions.
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """

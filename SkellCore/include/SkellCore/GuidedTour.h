@@ -28,6 +28,7 @@ struct GuidedTourStep {
     // Optional: switch to the correct page/expand a panel first.
     // This callback runs on the JUCE message thread, never the audio thread.
     std::function<void()> onEnter;
+    bool expectsTarget = false;
 
     GuidedTourStep(juce::Component* primary,
                    juce::String heading, juce::String explanation,
@@ -35,7 +36,7 @@ struct GuidedTourStep {
                    juce::Component* secondary = nullptr)
         : target(primary), alsoTarget(secondary),
           title(std::move(heading)), description(std::move(explanation)),
-          onEnter(std::move(activate)) {}
+          onEnter(std::move(activate)), expectsTarget(primary != nullptr) {}
 };
 
 enum class GuidedTourFinish { Completed, Skipped, Unavailable };
@@ -94,6 +95,16 @@ public:
         skip_.onClick = [this] { requestClose(GuidedTourFinish::Skipped); };
     }
 
+    void setColours(GuidedTourPalette palette) {
+        colours_ = palette;
+        for (auto* button : { &back_, &next_, &skip_ }) {
+            button->setColour(juce::TextButton::buttonColourId, colours_.panel.brighter(.10f));
+            button->setColour(juce::TextButton::textColourOffId, colours_.text);
+        }
+        next_.setColour(juce::TextButton::buttonColourId, colours_.accent);
+        next_.setColour(juce::TextButton::textColourOffId, colours_.panel);
+        repaint();
+    }
     void begin() {
         if (steps_.empty()) { requestClose(GuidedTourFinish::Unavailable); return; }
         select(0, +1);
@@ -253,7 +264,7 @@ private:
             if (steps_[index_].onEnter) steps_[index_].onEnter();
             const auto* candidate = steps_[index_].target.getComponent();
             // A no-target step is a valid full-editor introduction.
-            if (candidate == nullptr && steps_[index_].target.wasObjectDeleted())
+            if (candidate == nullptr && steps_[index_].expectsTarget)
                 continue;
             if (candidate == nullptr || isUsable(candidate)) {
                 back_.setEnabled(index_ > 0);

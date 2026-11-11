@@ -12,6 +12,10 @@
 
 using namespace skellcore::world;
 int main(int argc, char** argv) {
+    // Regression: public Windows headers must not macro-rewrite ordinary
+    // identifiers used by host/plugin DSP code.
+    const int near = 2, far = 3;
+    assert(near + far == 5);
     constexpr auto max = LocalTuningBus::timestampMask;
     assert(LocalTuningBus::fresh(100, 100));
     assert(LocalTuningBus::fresh(100, 50));

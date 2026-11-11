@@ -151,6 +151,8 @@ public:
         grabKeyboardFocus();
     }
 
+    juce::Rectangle<int> informationBounds() const { return bubbleBounds(); }
+
     juce::Rectangle<int> spotlightBounds() const {
         if (steps_.empty() || index_ >= steps_.size()) return {};
         const auto* primary = steps_[index_].target.getComponent();
@@ -199,8 +201,10 @@ public:
         g.fillRoundedRectangle(card, 10.f);
         g.setColour(colours_.accent.withAlpha(.82f));
         g.drawRoundedRectangle(card.reduced(.7f), 10.f, 1.2f);
+        const auto counter = juce::String(static_cast<int>(index_)+1)
+                           + " / " + juce::String(static_cast<int>(steps_.size()));
         const auto head = juce::Rectangle<int>(bubbleBounds().getX()+13,
-            bubbleBounds().getY()+9, juce::jmax(1,bubbleBounds().getWidth()-26), 22);
+            bubbleBounds().getY()+9, juce::jmax(1,bubbleBounds().getWidth()-62), 22);
         g.setColour(colours_.accent);
         g.setFont(juce::Font(juce::FontOptions(13.5f).withStyle("Bold")));
         g.drawFittedText(steps_[index_].title, head, juce::Justification::centredLeft, 1);
@@ -213,13 +217,10 @@ public:
             juce::Justification::topLeft, 4);
         g.setColour(colours_.secondary);
         g.setFont(juce::Font(juce::FontOptions(10.f)));
-        const auto progress = juce::String(static_cast<int>(index_)+1)
-                              + " / " + juce::String(static_cast<int>(steps_.size()));
-        g.drawText(progress,
-            juce::Rectangle<int>(bubbleBounds().getX()+13,
-                back_.getY(), juce::jmax(1,back_.getX()-bubbleBounds().getX()-16),
-                back_.getHeight()),
-            juce::Justification::centredLeft, true);
+        g.drawText(counter,
+            juce::Rectangle<int>(bubbleBounds().getRight()-45,
+                bubbleBounds().getY()+9, 32, 22),
+            juce::Justification::centredRight, true);
     }
 
 private:
@@ -237,25 +238,49 @@ private:
     }
 
     juce::Rectangle<int> bubbleBounds() const {
-        const int width = juce::jmin(350, juce::jmax(1, getWidth()-24));
-        const int height = juce::jmin(140, juce::jmax(1, getHeight()-16));
         if (getWidth() <= 0 || getHeight() <= 0) return {};
+        int width = juce::jmin(350, juce::jmax(1, getWidth() - 24));
+        int height = juce::jmin(140, juce::jmax(1, getHeight() - 16));
         const auto target = spotlightBounds();
-        const int inset = 8;
-        if (target.isEmpty()) return { (getWidth()-width)/2, (getHeight()-height)/2, width, height };
-        const int above = target.getY()-inset;
-        const int below = getHeight()-target.getBottom()-inset;
-        const bool preferBelow = below >= height+inset || below >= above;
-        int y;
-        if (preferBelow && below >= height+inset) y = target.getBottom()+inset;
-        else if (!preferBelow && above >= height+inset) y = target.getY()-inset-height;
-        else if (above >= height+inset) y = target.getY()-inset-height;
-        else if (below >= height+inset) y = target.getBottom()+inset;
-        else y = above >= below ? inset : getHeight()-height-inset;
-        y = juce::jlimit(0, juce::jmax(0,getHeight()-height), y);
+        constexpr int gap = 8;
+        if (target.isEmpty())
+            return { (getWidth()-width)/2, (getHeight()-height)/2, width, height };
+
+        const int above = target.getY() - gap;
+        const int below = getHeight() - target.getBottom() - gap;
+        const bool fitsAbove = above >= height + gap;
+        const bool fitsBelow = below >= height + gap;
+        if (fitsAbove || fitsBelow) {
+            const bool useBelow = fitsBelow && (!fitsAbove || below >= above);
+            const int y = useBelow ? target.getBottom() + gap
+                                   : target.getY() - height - gap;
+            const int x = juce::jlimit(0, juce::jmax(0, getWidth()-width),
+                                      target.getCentreX()-width/2);
+            return {x, y, width, height};
+        }
+
+        // Compact editors may have too little room vertically, yet 130-180px
+        // on either side of a knob. Dock there instead of obscuring the
+        // highlighted control with a centered panel.
+        const int sideLeft = juce::jmax(0, target.getX()-2*gap);
+        const int sideRight = juce::jmax(0, getWidth()-target.getRight()-2*gap);
+        if (juce::jmax(sideLeft,sideRight) >= 128) {
+            const bool useRight = sideRight >= sideLeft;
+            width = juce::jmin(280, useRight ? sideRight : sideLeft);
+            height = juce::jmin(150, juce::jmax(1, getHeight()-16));
+            const int x = useRight ? target.getRight()+gap : target.getX()-gap-width;
+            const int y = juce::jlimit(0, juce::jmax(0,getHeight()-height),
+                                      target.getCentreY()-height/2);
+            return {x, y, width, height};
+        }
+
+        // Very narrow hosts: keep the card inside the viewport, favoring the
+        // side with the least visual obstruction of the target.
+        const int y = juce::jlimit(0, juce::jmax(0,getHeight()-height),
+                                   above >= below ? gap : getHeight()-height-gap);
         const int x = juce::jlimit(0, juce::jmax(0,getWidth()-width),
-            target.getCentreX()-width/2);
-        return { x, y, width, height };
+                                  target.getCentreX()-width/2);
+        return {x,y,width,height};
     }
 
     void select(std::size_t requested, int direction) {

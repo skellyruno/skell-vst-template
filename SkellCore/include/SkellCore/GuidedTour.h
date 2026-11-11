@@ -258,6 +258,7 @@ private:
 
     void select(std::size_t requested, int direction) {
         if (closing_) return;
+        const auto before = index_;
         for (int index = static_cast<int>(requested);
              index >= 0 && index < static_cast<int>(steps_.size()); index += direction) {
             index_ = static_cast<std::size_t>(index);
@@ -274,9 +275,18 @@ private:
                 return;
             }
         }
-        // No usable visible controls: don't mark an incomplete/invalid tour
-        // as having been seen. Editors may start on an unloaded/hidden tab.
-        requestClose(GuidedTourFinish::Unavailable);
+        // A later page may have been removed by the plugin. The earlier
+        // valid steps still count as an introduction rather than a broken tour.
+        if (direction > 0 && requested > 0)
+            requestClose(GuidedTourFinish::Completed);
+        else if (direction < 0) {
+            index_ = before;
+            resized();
+            repaint();
+        } else {
+            // No usable first step: let the next editor opening retry.
+            requestClose(GuidedTourFinish::Unavailable);
+        }
     }
 
     void requestClose(GuidedTourFinish result) {

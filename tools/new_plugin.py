@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "bca5eb7cef326772499a0b4afe0e5389db918d3a"
+DEFAULT_REV = "8f5484abd8008d08db3b9e8ff281dbc14122ebb0"
 DEFAULT_REPO = "https://github.com/skellyruno/skell-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,
@@ -106,7 +106,7 @@ endif()
         ui_tools.mkdir()
         renderer_source = (ROOT / "tools" / "SkellCoreUiRendererMain.cpp").read_text(encoding="utf-8")
         renderer_source = renderer_source.replace("SkellAudioProcessor", f"{target}AudioProcessor")
-        renderer_source = renderer_source.replace("SkellCore template quickstart", name)
+        renderer_source = renderer_source.replace("SkellCore template Studio UI", name)
         renderer_source = renderer_source.replace("quickstart_", "plugin_")
         (ui_tools / "UiRendererMain.cpp").write_text(renderer_source, encoding="utf-8")
         (destination / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
@@ -164,7 +164,7 @@ jobs:
           if (-not $exe) { throw 'Renderer executable missing' }
           & $exe.FullName (Join-Path (Get-Location) 'ui-screenshots')
           if ($LASTEXITCODE -ne 0) { throw "Renderer failed: $LASTEXITCODE" }
-          if (@(Get-ChildItem ui-screenshots -Filter *.png).Count -ne 3) { throw 'Expected three screenshot PNGs' }
+          if (@(Get-ChildItem ui-screenshots -Filter *.png).Count -ne 10) { throw 'Expected ten skin/size screenshot PNGs' }
       - uses: actions/upload-artifact@v4
         with:
           name: Skell-UI-Screenshots
@@ -189,7 +189,7 @@ cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
 cmake --build build --config Release
 ```
 
-SkellCore is fetched by a pinned commit. Only update that pin after testing.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
+SkellCore is fetched by a pinned commit. Only update that pin after testing.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and ten size/skin screenshots are included. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
 To build in GitHub, upload this generated folder as its own repository and run Actions.
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """

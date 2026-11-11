@@ -27,6 +27,14 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+// Win32 still exposes legacy near/far macros in some toolchains. Do not
+// contaminate JUCE/plugin translation units which use these as variable names.
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
 #endif
 
 namespace skellcore::world {

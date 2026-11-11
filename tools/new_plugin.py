@@ -164,7 +164,7 @@ jobs:
           if (-not $exe) { throw 'Renderer executable missing' }
           & $exe.FullName (Join-Path (Get-Location) 'ui-screenshots')
           if ($LASTEXITCODE -ne 0) { throw "Renderer failed: $LASTEXITCODE" }
-          if (@(Get-ChildItem ui-screenshots -Filter *.png).Count -ne 10) { throw 'Expected ten skin/size screenshot PNGs' }
+          if (@(Get-ChildItem ui-screenshots -Filter *.png).Count -ne 13) { throw 'Expected thirteen skin/size/tour screenshot PNGs' }
       - uses: actions/upload-artifact@v4
         with:
           name: Skell-UI-Screenshots
@@ -194,7 +194,7 @@ The shared **Live Engine** is available as `#include <SkellCore/LiveEngine.h>`
 for latency-contract reporting and opt-in zero-delay multiband sidechain processing.
 It is **not** applied to the generated gain plugin automatically. See
 [docs/LIVE_ENGINE.md](https://github.com/skellyruno/skell-vst-template/blob/main/docs/LIVE_ENGINE.md)
-for live/studio architecture and honest PDC/DAW monitoring latency guidance.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and ten size/skin screenshots are included. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
+for live/studio architecture and honest PDC/DAW monitoring latency guidance.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and thirteen size/skin/guided-tour screenshots are included. Guided tours remain opt-in for complex plugin editors. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
 To build in GitHub, upload this generated folder as its own repository and run Actions.
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """

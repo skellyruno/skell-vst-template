@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'SkellCore/include/SkellCore/HeadlessUIRenderer.h'
+      - 'SkellCore/include/SkellCore/StudioUI.h'
       - 'SkellCore/CMakeLists.txt'
       - 'tools/SkellCoreUiRendererMain.cpp'
       - 'Source/**'
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - 'SkellCore/include/SkellCore/HeadlessUIRenderer.h'
+      - 'SkellCore/include/SkellCore/StudioUI.h'
       - 'SkellCore/CMakeLists.txt'
       - 'tools/SkellCoreUiRendererMain.cpp'
       - 'Source/**'
@@ -38,7 +40,7 @@ jobs:
           & $exe.FullName (Join-Path (Get-Location) 'ui-screenshots')
           if ($LASTEXITCODE -ne 0) { throw "Renderer failed with exit code $LASTEXITCODE" }
           $images = @(Get-ChildItem ui-screenshots -Filter *.png)
-          if ($images.Count -ne 3) { throw "Expected 3 PNGs, found $($images.Count)" }
+          if ($images.Count -ne 10) { throw "Expected 10 skin/size PNGs, found $($images.Count)" }
           if (-not (Test-Path ui-screenshots/manifest.json)) { throw 'Missing screenshot manifest' }
       - uses: actions/upload-artifact@v4
         with:

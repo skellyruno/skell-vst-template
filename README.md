@@ -84,3 +84,9 @@ This is **v0.3 shared-core work**. Source import does not automatically migrate 
 - AdlibLab / Silence Designer / other new plugins: opt in as their CMake projects are ready.
 
 See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](https://github.com/skellyruno/skell-vst-template/issues/2).
+
+## Studio UI: shared 3D knobs + four skins (opt-in)
+
+The quickstart editor demonstrates the new `<SkellCore/StudioUI.h>` components: a subtle raised-metal 3D rotary LookAndFeel, double-click-to-reset and editable-value knobs, and four consistent plugin skins (**Ivory, Obsidian, Amethyst, Crimson**). Skin choice persists as a *user appearance preference* across SKELL plugins adopting this module; it never changes audio processing or project parameters. The existing SkellCore UI API remains available.
+
+See [Studio UI integration and test matrix](docs/STUDIO_UI.md). The real editor screenshot harness covers 10 skin/size scenes. Other plugins are **not yet automatically converted**: adopt SkellCore on an immutable revision and validate their real parameter controls and plugin hosts independently.

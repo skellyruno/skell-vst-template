@@ -228,8 +228,10 @@ private:
             return false;
         const auto* parent = getParentComponent();
         for (auto* current = target; current != nullptr; current = current->getParentComponent()) {
-            if (!current->isVisible()) return false;
+            // The root editor may be intentionally non-showing during a
+            // headless snapshot. Its own children must still be tested.
             if (current == parent) return true;
+            if (!current->isVisible()) return false;
         }
         return false;
     }

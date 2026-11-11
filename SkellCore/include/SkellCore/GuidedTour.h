@@ -83,6 +83,10 @@ public:
         next_.setTooltip("Next tutorial step");
         skip_.setTooltip("Dismiss this introduction. Replay it from Help.");
         for (auto* button : { &back_, &next_, &skip_ }) {
+            // Editor-specific LookAndFeel implementations may ignore JUCE
+            // button colours (or draw text in the same colour as the panel).
+            // Own a neutral LAF for tutorial navigation, not the host editor's.
+            button->setLookAndFeel(&buttonLook_);
             button->setColour(juce::TextButton::buttonColourId, colours_.panel.brighter(.10f));
             button->setColour(juce::TextButton::textColourOffId, colours_.text);
             button->setColour(juce::TextButton::buttonOnColourId, colours_.accent);
@@ -93,6 +97,11 @@ public:
         back_.onClick = [this] { previous(); };
         next_.onClick = [this] { advance(); };
         skip_.onClick = [this] { requestClose(GuidedTourFinish::Skipped); };
+    }
+
+    ~GuidedTourOverlay() override {
+        for (auto* button : { &back_, &next_, &skip_ })
+            button->setLookAndFeel(nullptr);
     }
 
     void setColours(GuidedTourPalette palette) {
@@ -350,6 +359,9 @@ private:
     Close onClose_;
     std::size_t index_ = 0;
     bool closing_ = false;
+    // Constructed before buttons and destroyed afterwards (reverse member
+    // destruction order); a local LAF gives consistent legible controls.
+    juce::LookAndFeel_V4 buttonLook_;
     juce::TextButton back_, next_, skip_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GuidedTourOverlay)
 };

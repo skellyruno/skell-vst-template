@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     juce::Component geometryRoot, nestedPanel;
     juce::TextButton nestedButton { "Nested Target" }, hiddenButton { "Hidden Tab" };
     geometryRoot.setSize(600, 400);
+    geometryRoot.setVisible(true);
     geometryRoot.addAndMakeVisible(nestedPanel);
     nestedPanel.setBounds(50, 60, 260, 140);
     nestedPanel.addAndMakeVisible(nestedButton);
@@ -35,8 +36,11 @@ int main(int argc, char** argv) {
     geometryRoot.addAndMakeVisible(geometryTour);
     geometryTour.setBounds(geometryRoot.getLocalBounds());
     geometryTour.begin();
-    if (geometryTour.spotlightBounds() != juce::Rectangle<int>(64, 84, 102, 39)) {
-        std::fprintf(stderr, "GuidedTour nested target coordinates are incorrect\n");
+    const auto actualTarget = geometryTour.spotlightBounds();
+    if (actualTarget != juce::Rectangle<int>(64, 84, 102, 39)) {
+        std::fprintf(stderr, "GuidedTour nested spotlight: actual %d,%d %dx%d; expected 64,84 102x39\\n",
+            actualTarget.getX(), actualTarget.getY(),
+            actualTarget.getWidth(), actualTarget.getHeight());
         return 1;
     }
     geometryTour.advance();

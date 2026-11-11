@@ -28,6 +28,8 @@ class GeneratorTests(unittest.TestCase):
             self.assertIn("smoothedGain_", (dest / "Source" / "PluginProcessor.h").read_text())
             self.assertIn("Skell Compressor", (dest / "Source" / "PluginEditor.cpp").read_text())
             self.assertIn("setResizable(true, true)", (dest / "Source" / "PluginEditor.cpp").read_text())
+            self.assertIn("skullHit_.onClick", (dest / "Source" / "PluginEditor.cpp").read_text())
+            self.assertIn("skellSkullSkin", (dest / "Source" / "PluginProcessor.cpp").read_text())
             self.assertIn("FORMATS VST3 Standalone", (dest / "CMakeLists.txt").read_text())
             self.assertTrue((dest / ".github/workflows/build.yml").exists())
             self.assertTrue((dest / ".github/workflows/ui-renderer.yml").exists())

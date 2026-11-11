@@ -43,7 +43,14 @@ void SkellAudioProcessor::getStateInformation(juce::MemoryBlock& dest) {
   if(auto xml=parameters.copyState().createXml()) copyXmlToBinary(*xml,dest);
 }
 void SkellAudioProcessor::setStateInformation(const void* data,int size) {
-  if(auto xml=getXmlFromBinary(data,size))
-    if(xml->hasTagName(parameters.state.getType())) parameters.replaceState(juce::ValueTree::fromXml(*xml));
+  if (!data || size<=0 || size>1024*1024) return;
+  if (auto xml=getXmlFromBinary(data,size); xml && xml->hasTagName(parameters.state.getType())) {
+    const auto restored=juce::ValueTree::fromXml(*xml);
+    if (!restored.isValid()) return;
+    const auto raw=restored.getProperty("skellSkullSkin",1);
+    const auto selected=(raw.isInt() || raw.isInt64()) ? static_cast<int>(raw) : 1;
+    skinIndex_.store(juce::jlimit(0,3,selected),std::memory_order_release);
+    parameters.replaceState(restored);
+  }
 }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new SkellAudioProcessor(); }

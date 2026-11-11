@@ -74,3 +74,10 @@ SkellCore provides `WorldMusical.h`, a canonical `root.mode` payload (C=0 throug
 `SkullTheme.h` shares four UI skins and the original vector skull-key emblem from SkellKey; palette selection is per plugin instance and performed only on the message/UI thread. The skins are Ossuary (existing SkellKey colors), Neon, Ivory and Obsidian.
 
 These foundational APIs are independent of the current SkellyTune DSP and do not add host parameters, network traffic in `processBlock`, or alter preset/latency contracts. Individual Key and Tune repositories must adopt the API in separate tested PRs.
+
+## Pilot plugins (merged SKELL code, physical host test pending)
+
+- **SkellKey**: `skell.key` publishes stable major/minor key detections; original scene click still previews audio, header skull changes shared UI skins. Separate existing MIDI-scale output is not this connection.
+- **SkellyTune mini**: `skell.tune` follows only after JOIN WORLD + FOLLOW SKELLKEY in MORE. Temporary mask override never overwrites saved key/scale or manual note mask; skull in header cycles shared skins.
+
+SkellCore's own Quickstart example also supports skull-click skins. All integration code is merged, but manual FL Studio two-plugin and low-end-PC testing remains outstanding. Source validation alone does not prove live DAW routing.

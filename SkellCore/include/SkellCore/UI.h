@@ -1,6 +1,7 @@
 #pragma once
 // JUCE-dependent UI primitives. Include only from editor/UI code, never DSP.
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <SkellCore/SkullTheme.h>
 #include <cmath>
 #include <cstdint>
 
@@ -12,6 +13,11 @@ struct Theme {
     juce::Colour foreground = juce::Colour::fromRGB(230, 241, 228);
     juce::Colour secondary = juce::Colour::fromRGB(151, 173, 155);
     static Theme neon() { return {}; }
+    static Theme fromSkullSkin(SkullSkin skin) {
+        const auto p=skullPalette(skin);
+        return {p.background,p.panel,p.accent,p.bone,p.boneDim};
+    }
+
     static Theme ivory() {
         return { juce::Colour::fromRGB(235, 229, 215), juce::Colour::fromRGB(250, 246, 235),
                  juce::Colour::fromRGB(82, 111, 87), juce::Colour::fromRGB(39, 44, 39),
@@ -26,7 +32,9 @@ struct Theme {
 
 class LookAndFeel final : public juce::LookAndFeel_V4 {
 public:
-    explicit LookAndFeel(Theme theme = Theme::neon()) : colours_(theme) {
+    explicit LookAndFeel(Theme theme = Theme::neon()) { setTheme(theme); }
+    void setTheme(Theme theme) {
+        colours_=theme;
         setColour(juce::Label::textColourId, colours_.foreground);
         setColour(juce::Slider::thumbColourId, colours_.accent);
         setColour(juce::Slider::rotarySliderFillColourId, colours_.accent);

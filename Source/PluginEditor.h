@@ -11,6 +11,13 @@ public:
   void resized() override;
 private:
   void timerCallback() override;
+  void updateSkullSkin();
+  SkellAudioProcessor& processor_;
+  skellcore::ui::SkullSkin activeSkin_=skellcore::ui::SkullSkin::Neon;
+  struct SkullHit final : juce::Button {
+    SkullHit() : juce::Button("Cycle SKELL skin") { setMouseCursor(juce::MouseCursor::PointingHandCursor); }
+    void paintButton(juce::Graphics&,bool,bool) override {}
+  } skullHit_;
   skellcore::ui::LookAndFeel skin_;
   skellcore::world::WorldLink& world_;
   juce::TextButton worldButton_{"JOIN WORLD"};

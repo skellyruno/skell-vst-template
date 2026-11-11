@@ -2,7 +2,7 @@
 #include <SkellCore/SkullTheme.h>
 
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
-    : AudioProcessorEditor(&p), world_(p.worldLink), gainAttachment(p.parameters, "gain", gain) {
+    : AudioProcessorEditor(&p), processor_(p), world_(p.worldLink), gainAttachment(p.parameters, "gain", gain) {
   // Compact vector UI; setLookAndFeel never touches the audio callback.
   setLookAndFeel(&skin_);
   setResizable(true, true);
@@ -14,6 +14,13 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   gain.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 90, 24);
   addAndMakeVisible(title);
   addAndMakeVisible(gain);
+  skullHit_.setTooltip("Click the skull-key emblem to cycle SKELL themes.");
+  skullHit_.onClick=[this] {
+    processor_.setSkullSkin(skellcore::ui::nextSkin(processor_.getSkullSkin()));
+    updateSkullSkin();
+  };
+  addAndMakeVisible(skullHit_);
+  updateSkullSkin();
   worldButton_.onClick = [this] {
     if (world_.requested()) world_.leave();
     else world_.join(); // explicit only: never at plugin load
@@ -47,7 +54,7 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
   g.setColour(theme.accent.withAlpha(.52f));
   g.drawRoundedRectangle(panel, 12.f, 1.25f);
   // One shared skull-key vector, extracted from SkellKey's actual header.
-  const auto keyPalette = skellcore::ui::skullPalette(skellcore::ui::SkullSkin::Ossuary);
+  const auto keyPalette = skellcore::ui::skullPalette(activeSkin_);
   skellcore::ui::drawSkullKeyMark(g, 25.f, 15.f, keyPalette.bone, theme.surface);
   g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
   g.setColour(theme.secondary);
@@ -69,11 +76,13 @@ void SkellAudioProcessorEditor::resized() {
   title.setBounds(30, 48, w-60, 30);
   const int knobSize = juce::jmin(156, juce::jmax(70, h-195));
   gain.setBounds((w-knobSize)/2, 103, knobSize, knobSize);
+  skullHit_.setBounds(24, 14, 76, 34);
   worldButton_.setBounds(w/2 - 151, h-77, 122, 29);
   worldStatus_.setBounds(w/2 - 22, h-77, 170, 29);
 }
 
 void SkellAudioProcessorEditor::timerCallback() {
+  if (activeSkin_ != processor_.getSkullSkin()) updateSkullSkin();
   const bool joined=world_.requested();
   worldButton_.setButtonText(joined ? "LEAVE WORLD" : "JOIN WORLD");
   if (world_.online())
@@ -82,4 +91,14 @@ void SkellAudioProcessorEditor::timerCallback() {
   else
     worldStatus_.setText(joined ? "HUB NOT RUNNING" : "OFFLINE",
                          juce::dontSendNotification);
+}
+
+void SkellAudioProcessorEditor::updateSkullSkin() {
+  activeSkin_=processor_.getSkullSkin();
+  skin_.setTheme(skellcore::ui::Theme::fromSkullSkin(activeSkin_));
+  gain.repaint();
+  worldButton_.repaint();
+  worldStatus_.repaint();
+  title.repaint();
+  repaint();
 }

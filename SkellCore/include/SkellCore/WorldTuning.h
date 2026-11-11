@@ -50,7 +50,8 @@ inline bool parseMusicalTuning(std::string_view text, MusicalTuning& value) noex
     std::array<std::uint32_t,4> fields{};
     unsigned field = 0;
     bool digit = false;
-    for (const unsigned char c : text) {
+    for (const char raw : text) {
+        const auto c = static_cast<unsigned char>(raw);
         if (c == ',') {
             if (!digit || field == 3) return false;
             ++field;

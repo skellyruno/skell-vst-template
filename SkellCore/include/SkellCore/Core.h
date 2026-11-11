@@ -132,7 +132,7 @@ public:
         dampingDrive_ = 1.f - damping_;
         // FL Studio can repeat the same parameter value every audio block.
         // Skip four costly exp() calls unless the decay or sample rate changes.
-        if (!feedbackValid_ || nextDecay != decaySeconds_) {
+        if (!feedbackValid_ || std::abs(nextDecay-decaySeconds_) > 0.f) {
             decaySeconds_ = nextDecay;
             constexpr double logMinus60dB = -6.907755278982137052;
             for (std::size_t i = 0; i < 4; ++i)
@@ -200,15 +200,18 @@ public:
             const double offsetFraction = static_cast<double>(p) / activePhases_;
             const double centre = (activeTaps_ - 1) * .5;
             double sum = 0.0;
+            auto& phaseKernel = kernel_[static_cast<std::size_t>(p)];
             for (int j = 0; j < activeTaps_; ++j) {
                 const double offset = j - centre + offsetFraction;
                 const double sinc = std::abs(offset) < 1.e-10 ?
                     1.0 : std::sin(detail::pi * offset) / (detail::pi * offset);
                 const double window = .5 - .5 * std::cos(2 * detail::pi * j / (activeTaps_ - 1));
-                kernel_[p][j] = sinc * window;
-                sum += kernel_[p][j];
+                const auto tap = static_cast<std::size_t>(j);
+                phaseKernel[tap] = sinc * window;
+                sum += phaseKernel[tap];
             }
-            for (int j = 0; j < activeTaps_; ++j) kernel_[p][j] /= sum;
+            for (int j = 0; j < activeTaps_; ++j)
+                phaseKernel[static_cast<std::size_t>(j)] /= sum;
         }
         releasePole_ = detail::pole(rate_, 70.0);
         reset();
@@ -221,7 +224,7 @@ public:
     }
     void setCeilingDb(float db) noexcept {
         const float clamped = static_cast<float>(detail::clamp(db, -24, 0));
-        if (!ceilingValid_ || clamped != ceilingDb_) {
+        if (!ceilingValid_ || std::abs(clamped-ceilingDb_) > 0.f) {
             ceilingDb_ = clamped;
             ceiling_ = std::pow(10.0, ceilingDb_ / 20.0);
             ceilingValid_ = true;
@@ -246,17 +249,20 @@ public:
         const int h = historyWrite_;
         double peak = 0.0;
         for (int c = 0; c < count; ++c) {
+            const auto channel = static_cast<std::size_t>(c);
             const float sample = static_cast<float>(detail::finite(input[c]));
-            delay_[c][write_] = sample;
-            auto& hist = history_[c];
-            hist[h] = sample;
-            hist[h + taps] = sample; // mirrored delay: zero modulo in hot FIR loop
+            delay_[channel][write_] = sample;
+            auto& hist = history_[channel];
+            hist[static_cast<std::size_t>(h)] = sample;
+            hist[static_cast<std::size_t>(h + taps)] = sample; // mirrored history
             peak = std::max(peak, std::abs(static_cast<double>(sample)));
             for (int phase = 0; phase < activePhases_; ++phase) {
-                const double* coeff = kernel_[phase].data();
+                const double* coeff = kernel_[static_cast<std::size_t>(phase)].data();
                 double value = 0.0;
-                for (int j = 0; j < activeTaps_; ++j)
-                    value += coeff[j] * hist[h + taps - j];
+                for (int j = 0; j < activeTaps_; ++j) {
+                    const auto tap = static_cast<std::size_t>(j);
+                    value += coeff[tap] * hist[static_cast<std::size_t>(h + taps - j)];
+                }
                 peak = std::max(peak, std::abs(value));
             }
         }
@@ -267,7 +273,7 @@ public:
         else gain_ = releasePole_ * gain_ + (1.0 - releasePole_) * desired;
         const std::size_t next = write_ + 1 == delay_[0].size() ? 0 : write_ + 1;
         for (int c = 0; c < count; ++c)
-            output[c] = static_cast<float>(delay_[c][next] * gain_);
+            output[c] = static_cast<float>(delay_[static_cast<std::size_t>(c)][next] * gain_);
         write_ = next;
     }
 private:

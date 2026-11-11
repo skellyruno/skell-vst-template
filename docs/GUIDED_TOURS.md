@@ -36,7 +36,7 @@ steps.emplace_back(&advancedControl, "ADVANCED CONTROLS",
     });
 
 // Inherit colors from StudioUI if the plugin uses the shared four skins:
-const auto p = skellcore::ui::studioPalette(skin_);
+const auto p = skellcore::ui::studioPalette(myStudioLookAndFeel.skin()); // adapt to actual editor
 tour_.setPalette({ p.accent, p.surface, p.foreground, p.secondary,
                    juce::Colour(0xd9000000) });
 tour_.setSteps(std::move(steps));

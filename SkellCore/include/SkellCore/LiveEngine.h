@@ -3,6 +3,7 @@
 // Zero-added-delay multiband sidechain processing for tracking-friendly plugins.
 // Not a spectral FFT substitute in terms of sound: phase response and band selectivity differ.
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -89,7 +90,7 @@ public:
         for (auto& channel : envelope_) channel.fill(0.f);
         for (auto& channel : gain_) channel.fill(1.f);
         for (auto& channel : gainIncrement_) channel.fill(0.f);
-        for (auto& channel : levelMeters_) channel.fill(0.f);
+        for (auto& channel : displayGain_) for (auto& value : channel) value.store(1.f, std::memory_order_relaxed);
         peak_.fill(0.f);
         wetMix_ = 0.f;
         gainCountdown_ = 0;
@@ -108,6 +109,9 @@ public:
         if (p.highHz < p.lowHz * 1.25f) {
             p.highHz = std::min(20000.f, p.lowHz * 1.25f);
             if (p.highHz == 20000.f) p.lowHz = std::min(p.lowHz, 16000.f);
+        }
+        if (p.freeze && !params_.freeze) {
+            for (auto& channel : gainIncrement_) channel.fill(0.f);
         }
         if (p.attackMs != params_.attackMs || p.releaseMs != params_.releaseMs) {
             params_ = p;
@@ -186,13 +190,23 @@ public:
                 const float result = dry + wetMix_ * (processed - dry);
                 main[c][n] = finite(result);
             }
+            if (++meterCountdown_ >= 256) {
+                meterCountdown_ = 0;
+                for (int c = 0; c < channels; ++c)
+                    for (int k = 0; k < bands; ++k)
+                        displayGain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]
+                            .store(gain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)],
+                                   std::memory_order_relaxed);
+            }
         }
     }
 
-    // Coarse non-FFT telemetry for a live-spectrum GUI (message thread reads
-    // only atomic snapshots when an adopter chooses to publish them).
-    std::array<float, bands> gainSnapshot(int channel) const noexcept {
-        return gain_[static_cast<std::size_t>(std::clamp(channel, 0, 1))];
+    // Atomic display copy: safe from a message-thread timer while audio runs.
+    void copyDisplayGains(int channel, float* out) const noexcept {
+        if (!out) return;
+        const auto& snapshot = displayGain_[static_cast<std::size_t>(std::clamp(channel, 0, 1))];
+        for (int k = 0; k < bands; ++k)
+            out[k] = snapshot[static_cast<std::size_t>(k)].load(std::memory_order_relaxed);
     }
 
 private:
@@ -231,28 +245,42 @@ private:
         }
     }
     void updateGainTargets(int channels) noexcept {
-        for (int k = 0; k < bands; ++k) {
-            float strength[2]{};
-            for (int c = 0; c < channels; ++c) {
-                const float peak = peak_[static_cast<std::size_t>(c)];
+        std::array<std::array<float, bands>, 2> strength {};
+        for (int c = 0; c < channels; ++c) {
+            const float peak = peak_[static_cast<std::size_t>(c)];
+            for (int k = 0; k < bands; ++k) {
                 const float level = envelope_[static_cast<std::size_t>(c)]
                                             [static_cast<std::size_t>(k)];
-                // Relative to recent loudest band, like Spacer's level-
-                // independent detector, with a conservative absolute floor.
                 const float relative = level / std::max(peak, 1e-8f);
                 const float gate = unit((level - 0.0008f) * 900.f);
-                strength[c] = unit((relative - 0.012f) * 4.5f) * gate;
+                strength[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]
+                    = unit((relative - 0.012f) * 4.5f) * gate;
             }
-            const float stereoMax = channels == 2 ? std::max(strength[0], strength[1]) : strength[0];
+        }
+        for (int k = 0; k < bands; ++k) {
+            const float stereoMax = channels == 2
+                ? std::max(strength[0][static_cast<std::size_t>(k)],
+                           strength[1][static_cast<std::size_t>(k)])
+                : strength[0][static_cast<std::size_t>(k)];
             for (int c = 0; c < channels; ++c) {
-                float depth = strength[c] + params_.stereoLink * (stereoMax - strength[c]);
-                // Light adjacent-band spread. No additional time lookahead.
-                depth = unit(depth);
+                auto& row = strength[static_cast<std::size_t>(c)];
+                const float original = row[static_cast<std::size_t>(k)];
+                const float linked = original + params_.stereoLink * (stereoMax - original);
+                // Gentle frequency spread, no frame-based latency; Smooth has
+                // an audible effect but does not alter any host parameters.
+                const float neighbours = k == 0 ? row[1]
+                    : k == bands - 1 ? row[bands - 2]
+                    : 0.5f * (row[static_cast<std::size_t>(k - 1)] +
+                              row[static_cast<std::size_t>(k + 1)]);
+                const float depth = unit(linked * (1.f - 0.55f * params_.smooth) +
+                                         neighbours * 0.55f * params_.smooth);
                 const float db = maxCutDb * params_.amount * depth *
                                  bandMask_[static_cast<std::size_t>(k)];
                 const float target = std::exp(-0.11512925465f * db);
-                auto& inc = gainIncrement_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)];
-                inc = (target - gain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]) /
+                auto& inc = gainIncrement_[static_cast<std::size_t>(c)]
+                                          [static_cast<std::size_t>(k)];
+                inc = (target - gain_[static_cast<std::size_t>(c)]
+                                    [static_cast<std::size_t>(k)]) /
                       static_cast<float>(gainUpdateSamples);
             }
         }
@@ -263,7 +291,8 @@ private:
     std::array<float, crossovers> splitCoef_{};
     std::array<std::array<float, crossovers>, 2> mainSplit_{}, sideSplit_{};
     std::array<std::array<float, bands>, 2> envelope_{};
-    std::array<std::array<float, bands>, 2> gain_{}, gainIncrement_{}, levelMeters_{};
+    std::array<std::array<float, bands>, 2> gain_{}, gainIncrement_{};
+    std::array<std::array<std::atomic<float>, bands>, 2> displayGain_{};
     std::array<float, bands> bandMask_{};
     std::array<float, 2> peak_{};
     float attackCoef_ = 0.f, releaseCoef_ = 0.f, fadeStep_ = 0.002f,

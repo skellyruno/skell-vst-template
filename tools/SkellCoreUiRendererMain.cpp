@@ -79,6 +79,13 @@ int main(int argc, char** argv) {
         if (realKnob == nullptr) realKnob = dynamic_cast<juce::Slider*>(child);
         if (realSkin == nullptr) realSkin = dynamic_cast<juce::ComboBox*>(child);
     }
+    auto* skullClick = dynamic_cast<juce::Button*>(
+        editor.findChildWithID("skellcore.skull-theme"));
+    if (skullClick == nullptr || skullClick->getBounds().isEmpty() ||
+        !editor.getLocalBounds().contains(skullClick->getBounds())) {
+        std::fprintf(stderr, "Shared skull click target missing or outside editor\n");
+        return 1;
+    }
     if (realKnob == nullptr || realSkin == nullptr) {
         std::fprintf(stderr, "Tour targets not found in real JUCE editor\n");
         return 1;

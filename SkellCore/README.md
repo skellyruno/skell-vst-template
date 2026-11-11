@@ -35,7 +35,7 @@ Pin the SkellCore source to an immutable commit rather than `main` or a moving b
 ```cmake
 include(FetchContent)
 FetchContent_Declare(SkellCore
-  GIT_REPOSITORY https://github.com/skellyruno/skell-vst-template.git
+  GIT_REPOSITORY https://github.com/skellyruno/skellcore-vst-template.git
   GIT_TAG <COMMIT_WITH_SKELLCORE>
   SOURCE_SUBDIR SkellCore)
 FetchContent_MakeAvailable(SkellCore)

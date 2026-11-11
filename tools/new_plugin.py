@@ -8,8 +8,8 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "ab2b36e199f7dc684e09ce744d776616d1c3138f"
-DEFAULT_REPO = "https://github.com/skellyruno/skell-vst-template.git"
+DEFAULT_REV = "4c499c58cb3b2791eed2d5dcef6d8d543fcaea8d"
+DEFAULT_REPO = "https://github.com/skellyruno/skellcore-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,
                  core_rev: str = DEFAULT_REV, core_repo: str = DEFAULT_REPO):
@@ -193,7 +193,7 @@ SkellCore is fetched by a pinned commit. Only update that pin after testing.
 The shared **Live Engine** is available as `#include <SkellCore/LiveEngine.h>`
 for latency-contract reporting and opt-in zero-delay multiband sidechain processing.
 It is **not** applied to the generated gain plugin automatically. See
-[docs/LIVE_ENGINE.md](https://github.com/skellyruno/skell-vst-template/blob/main/docs/LIVE_ENGINE.md)
+[docs/LIVE_ENGINE.md](https://github.com/skellyruno/skellcore-vst-template/blob/main/docs/LIVE_ENGINE.md)
 for live/studio architecture and honest PDC/DAW monitoring latency guidance.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and thirteen size/skin/guided-tour screenshots are included. Guided tours remain opt-in for complex plugin editors. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
 To build in GitHub, upload this generated folder as its own repository and run Actions.
 Do not reuse the same plugin code or bundle ID in two shipping plugins.

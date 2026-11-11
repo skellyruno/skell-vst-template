@@ -29,6 +29,15 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   };
   addAndMakeVisible(skinSelector_);
 
+  // Reuse SkellKey's simple skull-click interaction, but cycle the *current*
+  // StudioUI skins. The existing dropdown, templates and saved appearance
+  // remain intact; only the message thread touches the LookAndFeel.
+  skullMark_.onClick = [this] {
+    const auto next = (static_cast<int>(skin_.skin()) + 1) % 4;
+    setStudioSkin(skellcore::ui::studioSkinFromIndex(next), true);
+  };
+  addAndMakeVisible(skullMark_);
+
   worldButton_.onClick = [this] {
     if (world_.requested()) world_.leave();
     else world_.join(); // explicit only: never join at plugin load
@@ -96,6 +105,7 @@ void SkellAudioProcessorEditor::resized() {
   const int w = getWidth(), h = getHeight();
   title.setBounds(30, 48, w-198, 30);
   skinSelector_.setBounds(w-158, 49, 126, 27);
+  skullMark_.setBounds(24, 14, 76, 34);
   const int knobSize = juce::jmin(156, juce::jmax(70, h-195));
   gain.setBounds((w-knobSize)/2, 103, knobSize, knobSize);
   worldButton_.setBounds(w/2 - 151, h-77, 122, 29);
@@ -105,7 +115,9 @@ void SkellAudioProcessorEditor::resized() {
 void SkellAudioProcessorEditor::timerCallback() {
   const bool joined = world_.requested();
   worldButton_.setButtonText(joined ? "LEAVE WORLD" : "JOIN WORLD");
-  if (world_.online())
+  // Presence needs the actual Hub. The separate hub-free tuning mapping does
+  // not imply any SkellWorld peers or a running presence broker.
+  if (world_.hubOnline())
     worldStatus_.setText("WORLD ONLINE  |  " + juce::String(world_.peerCount()) + " peers",
                          juce::dontSendNotification);
   else

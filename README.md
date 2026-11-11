@@ -52,13 +52,13 @@ Copy `SkellCore/` into your monorepo, or FetchContent the **immutable commit** o
 ```cmake
 include(FetchContent)
 FetchContent_Declare(SkellCore
-  GIT_REPOSITORY https://github.com/skellyruno/skell-vst-template.git
+  GIT_REPOSITORY https://github.com/skellyruno/skellcore-vst-template.git
   GIT_TAG <IMMUTABLE_COMMIT_SHA>
   SOURCE_SUBDIR SkellCore)
 FetchContent_MakeAvailable(SkellCore)
 target_link_libraries(MyPlugin PRIVATE SkellCore::DSP SkellCore::UI)
 ```
-Replace `MyPlugin` with the JUCE target. Once the repository itself is renamed on GitHub, update the URL to `skellcore-vst-template` while pinning the immutable revision. Repositories renamed by GitHub redirect old clones but new URLs should be adopted in each plugin.
+Replace `MyPlugin` with the JUCE target. The official GitHub repository is now `skellyruno/skellcore-vst-template`. Use the canonical URL in all new plugin builds; pin an immutable, tested revision. The former `skell-vst-template` URL is only a backwards-compatibility redirect.
 
 ## Integration APIs
 ```cpp
@@ -83,7 +83,7 @@ This is **v0.3 shared-core work**. Source import does not automatically migrate 
 - Choir: links pinned SkellCore target on separate PR; current sound unchanged.
 - AdlibLab / Silence Designer / other new plugins: opt in as their CMake projects are ready.
 
-See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](https://github.com/skellyruno/skell-vst-template/issues/2).
+See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](https://github.com/skellyruno/skellcore-vst-template/issues/2).
 
 ## Studio UI: shared 3D knobs + four skins (opt-in)
 

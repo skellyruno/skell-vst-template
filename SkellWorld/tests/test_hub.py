@@ -73,6 +73,29 @@ class WorldHubTests(unittest.TestCase):
         receiver.sendall(hub.encode("EVENT","tune-01","musical.key","0.0"))
         self.assertEqual(hub.decode(sf.readline(256))[:2], ["PEER","tune-01"])
 
+    def test_only_skell_key_can_send_full_tuning(self):
+        sender, sf = self.peer("key-01", "skell.key")
+        receiver, rf = self.peer("tune-01", "skell.tune")
+        sf.readline(256); rf.readline(256)
+        sender.sendall(hub.encode("EVENT", "key-01", "musical.tuning",
+                                "4,1,2773,432500"))
+        self.assertEqual(hub.decode(rf.readline(256)),
+                         ["EVENT", "key-01", "musical.tuning",
+                          "4,1,2773,432500"])
+        # No other plugin may impersonate the full tuning publisher.
+        receiver.sendall(hub.encode("EVENT", "tune-01", "musical.tuning",
+                                  "4,1,2773,432500"))
+        self.assertEqual(hub.decode(sf.readline(256))[:2], ["PEER", "tune-01"])
+
+    def test_bad_full_tuning_payload_disconnects(self):
+        sender, sf = self.peer("key-01", "skell.key")
+        listener, lf = self.peer("tune-01", "skell.tune")
+        sf.readline(256); lf.readline(256)
+        # Root E (4) is absent from the mask; reject untrusted scale data.
+        sender.sendall(hub.encode("EVENT", "key-01", "musical.tuning",
+                                "4,1,1,432500"))
+        self.assertEqual(hub.decode(lf.readline(256))[:2], ["PEER", "key-01"])
+
     def test_bad_key_payload_disconnects(self):
         sender, sf = self.peer("key-01", "skell.key")
         listener, lf = self.peer("tune-01", "skell.tune")

@@ -21,7 +21,7 @@ struct LatencyContract {
     int samples = 0;
 
     static double safeRate(double sr) noexcept {
-        return std::isfinite(sr) ? std::clamp(sr, 1000.0, 384000.0) : 48000.0;
+        return std::isfinite(sr) && sr >= 1000.0 ? std::min(sr, 384000.0) : 48000.0;
     }
     static int fromMilliseconds(double ms, double sr) noexcept {
         if (!std::isfinite(ms) || ms <= 0.0) return 0;

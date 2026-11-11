@@ -4,6 +4,7 @@
 #include <SkellCore/World.h>
 #include <SkellCore/WorldMusical.h>
 #include <SkellCore/WorldTuning.h>
+#include <SkellCore/LocalTuningBus.h>
 #include <juce_core/juce_core.h>
 #include <atomic>
 #include <array>
@@ -19,14 +20,17 @@ public:
           instance_(juce::Uuid().toString().toStdString()) {}
     ~WorldLink() override { leave(); }
 
-    // Explicit opt-in from the JUCE message thread. Never start at plugin load.
+    // No service/Hub is needed for tuning on Windows. Opening this tiny
+    // same-session mapping is performed only on the UI/message thread.
+    // The optional legacy Hub worker still supports other SW1 topics.
     bool join() {
-        if (isThreadRunning()) return false;
+        if (requested()) return true;
+        localTuning_.open();
         requested_.store(true, std::memory_order_release);
         online_.store(false, std::memory_order_release);
         peers_.store(0, std::memory_order_release);
         pending_.resetWhenStopped();
-        if (!startThread()) {
+        if (!startThread() && !localTuning_.available()) {
             requested_.store(false, std::memory_order_release);
             return false;
         }
@@ -36,16 +40,32 @@ public:
         requested_.store(false, std::memory_order_release);
         signalThreadShouldExit();
         stopThread(3000); // 200ms read poll + bounded reconnect sleep
+        // Remove only this sender's packet; never erase a newer peer's data.
+        localTuning_.close();
         online_.store(false, std::memory_order_release);
         peers_.store(0, std::memory_order_release);
     }
     bool requested() const noexcept { return requested_.load(std::memory_order_acquire); }
-    bool online() const noexcept { return online_.load(std::memory_order_acquire); }
+    // Local publishing is ready even when no Hub process exists.
+    bool online() const noexcept {
+        return online_.load(std::memory_order_acquire) ||
+               (requested() && localTuning_.available());
+    }
+    bool hubOnline() const noexcept {
+        return online_.load(std::memory_order_acquire);
+    }
     int peerCount() const noexcept { return peers_.load(std::memory_order_acquire); }
     // UI timer only: informational key, valid only while connected and the
     // sending peer is registered as skell.key. Callers must explicitly opt in.
     bool latestMusicalKey(MusicalKey& key, std::uint64_t& version) const noexcept {
-        if(!online()) return false;
+        MusicalTuning local;
+        std::uint32_t localVersion=0;
+        if (requested() && localTuning_.latest(local,localVersion)) {
+            key={local.root,local.mode};
+            version=localVersion;
+            return true;
+        }
+        if(!hubOnline()) return false;
         const auto word=lastKey_.load(std::memory_order_acquire);
         const int encoded=int(word & 255u);
         key=unpackMusicalKey(encoded);
@@ -55,15 +75,23 @@ public:
     // UI thread: the entire tuning snapshot is one event. Send a legacy key
     // announcement too, for consumers not yet updated to musical.tuning.
     bool publishMusicalTuning(MusicalTuning tuning) noexcept {
-        if (!tuning.valid()) return false;
-        const auto payload=formatMusicalTuning(tuning);
-        const bool sent=publish("musical.tuning",payload.data());
-        if (sent) publishMusicalKey({tuning.root,tuning.mode});
-        return sent;
+        // Only the opted-in SkellKey sender may write to the shared map.
+        // The mapping is same-user informational IPC, not a security boundary.
+        if (!tuning.valid() || !requested() || product_!="skell.key") return false;
+        const bool localSent=localTuning_.publish(tuning);
+        bool hubSent=false;
+        if (hubOnline()) {
+            const auto payload=formatMusicalTuning(tuning);
+            hubSent=publish("musical.tuning",payload.data());
+            if (hubSent) publishMusicalKey({tuning.root,tuning.mode});
+        }
+        return localSent || hubSent;
     }
     // UI polling only. A 64-bit atomic preserves key, scale and A4 consistency.
     bool latestMusicalTuning(MusicalTuning& tuning, std::uint32_t& version) const noexcept {
-        if (!online()) return false;
+        // Prioritize the local, freshest, complete Key/Scale/A4 packet.
+        if (requested() && localTuning_.latest(tuning,version)) return true;
+        if (!hubOnline()) return false;
         return unpackMusicalTuning(lastTuning_.load(std::memory_order_acquire),tuning,version);
     }
     bool publishMusicalKey(MusicalKey key) noexcept {
@@ -74,7 +102,9 @@ public:
 
     // UI-thread event publishing only; informational data, never remote controls.
     bool publish(std::string_view topic, std::string_view value) noexcept {
-        if (!online()) return false;
+        // Other informational SW1 topics still use the optional Hub;
+        // never enqueue messages into a disconnected Hub queue.
+        if (!hubOnline()) return false;
         Frame frame;
         return make(frame, Kind::Event, instance_, topic, value) && pending_.push(frame);
     }
@@ -222,6 +252,7 @@ private:
     std::atomic<std::uint64_t> lastTuning_{0};
     std::atomic<std::uint64_t> lastKey_{0};
     Mailbox<32> pending_; // one UI producer, one worker consumer
+    mutable LocalTuningBus localTuning_; // UI thread, never touched by processBlock()
     const std::string product_;
     const std::string display_;
     const std::string instance_;

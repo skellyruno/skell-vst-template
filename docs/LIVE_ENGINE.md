@@ -46,3 +46,7 @@ MetaTune's current Skell Live path reports ~3.4 ms but cannot fully correct pitc
 ### Spacer
 
 Spacer's current FFT path reports 2,048 samples at 48 kHz (42.667 ms), not exactly the same as a DAW's displayed end-to-end latency (e.g. 70 ms with device buffers). The new live ducker is a candidate separate mode; it should be exposed only with clear mode/host PDC semantics, benchmarked against real sidechain audio and rolled out with an opt-in parameter. Existing project states should retain the Studio processing mode by default.
+
+## Additional shared building block: latency-aligned bypass
+
+For any plugin whose *wet* path necessarily incurs intrinsic latency, use [`LatencyAlignedMix`](LATENCY_ALIGNED_MIX.md) to align dry/wet and bypass so switching does not create phase combing or an uncompensated timing jump. This utility does **not** remove wet algorithm latency and should be used in addition to (not in place of) an explicit host PDC contract.

@@ -1,18 +1,26 @@
 #pragma once
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include <SkellCore/UI.h>
+#include <SkellCore/StudioUI.h>
 #include <SkellCore/WorldLink.h>
+
 class SkellAudioProcessorEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
   explicit SkellAudioProcessorEditor(SkellAudioProcessor&);
   ~SkellAudioProcessorEditor() override;
   void paint(juce::Graphics&) override;
   void resized() override;
+
+  // UI-only theme switch for the shared headless renderer and any host editor.
+  // persist=false permits repeatable screenshot tests without changing preferences.
+  void setStudioSkin(skellcore::ui::StudioSkin skin, bool persist = false);
+  skellcore::ui::StudioSkin studioSkin() const noexcept { return skin_.skin(); }
+
 private:
   void timerCallback() override;
-  skellcore::ui::LookAndFeel skin_;
+  skellcore::ui::StudioLookAndFeel skin_;
   skellcore::world::WorldLink& world_;
+  juce::ComboBox skinSelector_;
   juce::TextButton worldButton_{"JOIN WORLD"};
   juce::Label worldStatus_;
   juce::Slider gain;

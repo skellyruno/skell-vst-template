@@ -108,7 +108,11 @@ int main(int argc, char** argv) {
     };
     options.configure = [&editor, &testTour](const skellcore::ui::headless::Scene& scene) {
         testTour.dismiss();
-        editor.setStudioSkin(skellcore::ui::studioSkinFromIndex(scene.theme), false);
+        const auto selection = skellcore::ui::studioSkinFromIndex(scene.theme);
+        editor.setStudioSkin(selection, false);
+        const auto p = skellcore::ui::studioPalette(selection);
+        testTour.setPalette({p.accent, p.surface, p.foreground, p.secondary,
+                             juce::Colour(0xd9000000)});
         if (scene.mode == 1 && !testTour.replay())
             std::fprintf(stderr, "Tour did not show in renderer scene\n");
     };

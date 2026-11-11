@@ -36,6 +36,20 @@ int main(int argc, char** argv) {
     geometryRoot.addAndMakeVisible(geometryTour);
     geometryTour.setBounds(geometryRoot.getLocalBounds());
     geometryTour.begin();
+    // Navigation must use its own reliable LookAndFeel; Spectre and Silence
+    // have editor-wide button painters that make NEXT dark-on-dark otherwise.
+    bool nextHasIsolatedLookAndFeel = false;
+    for (int i = 0; i < geometryTour.getNumChildComponents(); ++i) {
+        if (auto* button = dynamic_cast<juce::TextButton*>(geometryTour.getChildComponent(i))) {
+            if (button->getButtonText() == "NEXT")
+                nextHasIsolatedLookAndFeel =
+                    &button->getLookAndFeel() != &geometryRoot.getLookAndFeel();
+        }
+    }
+    if (!nextHasIsolatedLookAndFeel) {
+        std::fprintf(stderr,"GuidedTour NEXT button inherited host LookAndFeel\\n");
+        return 1;
+    }
     const auto actualTarget = geometryTour.spotlightBounds();
     if (actualTarget != juce::Rectangle<int>(64, 84, 102, 39)) {
         std::fprintf(stderr, "GuidedTour nested spotlight: actual %d,%d %dx%d; expected 64,84 102x39\\n",

@@ -63,6 +63,11 @@ if(SKELLCORE_BUILD_TESTS)
   add_executable(SkellWorldMusicalTests tests/test_world_musical.cpp)
   target_link_libraries(SkellWorldMusicalTests PRIVATE SkellCore::DSP)
   add_test(NAME SkellWorldMusicalTests COMMAND SkellWorldMusicalTests)
+  # Works across isolated Windows plugin host processes without a Hub.
+  # Portable builds also validate timestamp rollover and platform fallback.
+  add_executable(SkellCoreLocalTuningTests tests/test_local_tuning.cpp)
+  target_link_libraries(SkellCoreLocalTuningTests PRIVATE SkellCore::DSP)
+  add_test(NAME SkellCoreLocalTuningTests COMMAND SkellCoreLocalTuningTests)
 endif()
 
 option(SKELLCORE_BUILD_BENCHMARKS "Build opt-in SkellCore CPU benchmark (non-gating)" OFF)

@@ -96,3 +96,7 @@ See [Studio UI integration and test matrix](docs/STUDIO_UI.md). The real editor 
 Use [the shared Live Engine](docs/LIVE_ENGINE.md) for honest per-plugin latency budgets and an optional **zero-added-delay** 10-band causal sidechain processor (introduced for the Skell Spacer live-tracking pilot). This is not an automatic latency reduction for pitch correction, convolution, FFT, or mastering. Each plugin must implement a suitable Live algorithm, declare its true latency to the host, and pass impulse, CPU and real-host tests. The portable Live regression suite passes on Windows and Linux; read the docs before adoption.
 
 The new-plugin generator pins the tested SkellCore revision including `<SkellCore/LiveEngine.h>`. Live-mode behavior is **opt-in**: old plugin IDs, presets and DSP algorithms are unchanged.
+
+### Latency-aligned bypass and dry/wet mix
+
+Use [`SkellCore/LatencyAlignedMix.h`](SkellCore/include/SkellCore/LatencyAlignedMix.h) when combining original dry input with delayed FFT, lookahead, tuning or reverb processing. It provides sample-accurate dry-path alignment, smooth bypass and no callback allocations. It **does not reduce intrinsic latency**. See the [integration guide](docs/LATENCY_ALIGNED_MIX.md) and portable regression tests.

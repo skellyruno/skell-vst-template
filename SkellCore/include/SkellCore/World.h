@@ -31,8 +31,9 @@ inline constexpr const char* keyword(Kind k) noexcept {
         case Kind::Event: return "EVENT";
         case Kind::Bye: return "BYE";
         case Kind::Error: return "ERROR";
-        default: return "INVALID";
+        case Kind::Invalid: return "INVALID";
     }
+    return "INVALID"; // Also handles unknown casts of Kind.
 }
 inline Kind kindFromString(std::string_view s) noexcept {
     for (auto k : {Kind::Hello, Kind::Welcome, Kind::Peer, Kind::Event, Kind::Bye, Kind::Error})
@@ -43,7 +44,8 @@ inline Kind kindFromString(std::string_view s) noexcept {
 // Reject control chars, pipe separators and embedded NUL.
 inline bool valid(std::string_view s, bool value = false) noexcept {
     if (s.empty()) return false;
-    for (unsigned char c : s) {
+    for (const char raw : s) {
+        const auto c = static_cast<unsigned char>(raw);
         if (c < (value ? 32 : 33) || c > 126 || c == '|' || c == '\\') return false;
         if (!value && !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') &&
             !(c >= '0' && c <= '9') && c != '-' && c != '_' && c != '.') return false;

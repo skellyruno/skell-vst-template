@@ -88,6 +88,9 @@ public:
         for (auto& channel : mainSplit_) channel.fill(0.f);
         for (auto& channel : sideSplit_) channel.fill(0.f);
         for (auto& channel : envelope_) channel.fill(0.f);
+        for (auto& channel : mainLevel_) channel.fill(0.f);
+        for (auto& channel : displayMain_) for (auto& value : channel) value.store(0.f, std::memory_order_relaxed);
+        for (auto& channel : displaySide_) for (auto& value : channel) value.store(0.f, std::memory_order_relaxed);
         for (auto& channel : gain_) channel.fill(1.f);
         for (auto& channel : gainIncrement_) channel.fill(0.f);
         for (auto& channel : displayGain_) for (auto& value : channel) value.store(1.f, std::memory_order_relaxed);
@@ -142,6 +145,12 @@ public:
                 split(dry, mainSplit_[static_cast<std::size_t>(c)],
                       components[static_cast<std::size_t>(c)]);
                 main[c][n] = dry; // retained until gain application
+                for (int k = 0; k < bands; ++k) {
+                    auto& level = mainLevel_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)];
+                    level += 0.02f * (std::abs(components[static_cast<std::size_t>(c)]
+                                             [static_cast<std::size_t>(k)]) - level);
+                    if (level < 1e-18f) level = 0.f;
+                }
             }
             for (int c = 0; c < channels; ++c) {
                 float sc = 0.f;
@@ -194,9 +203,17 @@ public:
                 meterCountdown_ = 0;
                 for (int c = 0; c < channels; ++c)
                     for (int k = 0; k < bands; ++k)
+                    {
                         displayGain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]
                             .store(gain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)],
                                    std::memory_order_relaxed);
+                        displayMain_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]
+                            .store(mainLevel_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)],
+                                   std::memory_order_relaxed);
+                        displaySide_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)]
+                            .store(envelope_[static_cast<std::size_t>(c)][static_cast<std::size_t>(k)],
+                                   std::memory_order_relaxed);
+                    }
             }
         }
     }
@@ -207,6 +224,22 @@ public:
         const auto& snapshot = displayGain_[static_cast<std::size_t>(std::clamp(channel, 0, 1))];
         for (int k = 0; k < bands; ++k)
             out[k] = snapshot[static_cast<std::size_t>(k)].load(std::memory_order_relaxed);
+    }
+
+    // Audio thread only writes atomics; the GUI may read this concurrently.
+    // Output is [bands] main/side level in dBFS and gain reduction in dB.
+    void copyDisplayBands(int channel, float* mainDb,
+                          float* sideDb, float* cutDb) const noexcept {
+        const auto c = static_cast<std::size_t>(std::clamp(channel, 0, 1));
+        for (int k = 0; k < bands; ++k) {
+            const auto i = static_cast<std::size_t>(k);
+            const auto levelMain = displayMain_[c][i].load(std::memory_order_relaxed);
+            const auto levelSide = displaySide_[c][i].load(std::memory_order_relaxed);
+            const auto gain = displayGain_[c][i].load(std::memory_order_relaxed);
+            if (mainDb) mainDb[k] = 20.f * std::log10(std::max(levelMain, 1e-6f));
+            if (sideDb) sideDb[k] = 20.f * std::log10(std::max(levelSide, 1e-6f));
+            if (cutDb) cutDb[k] = -20.f * std::log10(std::max(gain, 0.01f));
+        }
     }
 
 private:
@@ -290,9 +323,9 @@ private:
     LiveDuckerParams params_{};
     std::array<float, crossovers> splitCoef_{};
     std::array<std::array<float, crossovers>, 2> mainSplit_{}, sideSplit_{};
-    std::array<std::array<float, bands>, 2> envelope_{};
+    std::array<std::array<float, bands>, 2> envelope_{}, mainLevel_{};
     std::array<std::array<float, bands>, 2> gain_{}, gainIncrement_{};
-    std::array<std::array<std::atomic<float>, bands>, 2> displayGain_{};
+    std::array<std::array<std::atomic<float>, bands>, 2> displayGain_{}, displayMain_{}, displaySide_{};
     std::array<float, bands> bandMask_{};
     std::array<float, 2> peak_{};
     float attackCoef_ = 0.f, releaseCoef_ = 0.f, fadeStep_ = 0.002f,

@@ -90,3 +90,9 @@ See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](ht
 The quickstart editor demonstrates the new `<SkellCore/StudioUI.h>` components: a subtle raised-metal 3D rotary LookAndFeel, double-click-to-reset and editable-value knobs, and four consistent plugin skins (**Ivory, Obsidian, Amethyst, Crimson**). Skin choice persists as a *user appearance preference* across SKELL plugins adopting this module; it never changes audio processing or project parameters. The existing SkellCore UI API remains available.
 
 See [Studio UI integration and test matrix](docs/STUDIO_UI.md). The real editor screenshot harness covers 10 skin/size scenes. Other plugins are **not yet automatically converted**: adopt SkellCore on an immutable revision and validate their real parameter controls and plugin hosts independently.
+
+## SkellCore Live Engine — tracking-first processing
+
+Use [the shared Live Engine](docs/LIVE_ENGINE.md) for honest per-plugin latency budgets and an optional **zero-added-delay** 10-band causal sidechain processor (introduced for the Skell Spacer live-tracking pilot). This is not an automatic latency reduction for pitch correction, convolution, FFT, or mastering. Each plugin must implement a suitable Live algorithm, declare its true latency to the host, and pass impulse, CPU and real-host tests. The portable Live regression suite passes on Windows and Linux; read the docs before adoption.
+
+The new-plugin generator pins the tested SkellCore revision including `<SkellCore/LiveEngine.h>`. Live-mode behavior is **opt-in**: old plugin IDs, presets and DSP algorithms are unchanged.

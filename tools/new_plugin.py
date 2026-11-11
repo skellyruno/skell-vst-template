@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "8f5484abd8008d08db3b9e8ff281dbc14122ebb0"
+DEFAULT_REV = "4c05e29cb0d8b30bf25a0aa857c0c71e86f2da87"
 DEFAULT_REPO = "https://github.com/skellyruno/skell-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,
@@ -189,7 +189,12 @@ cmake -S . -B build -DJUCE_PATH=/path/to/JUCE
 cmake --build build --config Release
 ```
 
-SkellCore is fetched by a pinned commit. Only update that pin after testing.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and ten size/skin screenshots are included. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
+SkellCore is fetched by a pinned commit. Only update that pin after testing.
+The shared **Live Engine** is available as `#include <SkellCore/LiveEngine.h>`
+for latency-contract reporting and opt-in zero-delay multiband sidechain processing.
+It is **not** applied to the generated gain plugin automatically. See
+[docs/LIVE_ENGINE.md](https://github.com/skellyruno/skell-vst-template/blob/main/docs/LIVE_ENGINE.md)
+for live/studio architecture and honest PDC/DAW monitoring latency guidance.\n\nThe generated project includes an opt-in **real JUCE UI screenshot renderer**:\n\n```sh\ncmake -S . -B build -DSKELLCORE_BUILD_UI_RENDERER=ON\ncmake --build build --config Release --target {target}UIRenderer\n```\n\nRun `{target}UIRenderer` with an output folder argument, or use the GitHub Actions **Headless JUCE UI screenshots** workflow. Four Studio UI skins and ten size/skin screenshots are included. Configure additional themes and layouts in `tools/UiRendererMain.cpp`.
 To build in GitHub, upload this generated folder as its own repository and run Actions.
 Do not reuse the same plugin code or bundle ID in two shipping plugins.
 """

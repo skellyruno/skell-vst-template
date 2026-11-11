@@ -94,3 +94,7 @@ remain independent of JUCE and X11.
 ## Studio UI module (design research items 3 + 5)
 
 Use `#include <SkellCore/StudioUI.h>` for the shared `StudioLookAndFeel`, four subdued `StudioSkin` palettes, persistent per-user `StudioSkinStore`, skin selector population and `configureStudioKnob` helper. This is UI-only, never part of the real-time audio thread. It preserves existing plugin parameter attachments, DSP, and automation IDs. An opt-in quickstart editor and 10-scene real-editor renderer test are included. For adoption and maintenance rules, see [docs/STUDIO_UI.md](../docs/STUDIO_UI.md).
+
+## Shared Live Engine (tracking-friendly low-latency infrastructure)
+
+`<SkellCore/LiveEngine.h>` now offers `live::LatencyContract`, the explicit Live/Studio profile enum, and an allocation-free, zero-lookahead **causal multiband sidechain** alternative. It is suitable for spectral-ducking-style effects, not a universal pitch or reverb replacement. DSP/DAW/hardware delays must be measured and PDC reported by the owning plugin on a non-audio thread. See [the Live Engine guide](../docs/LIVE_ENGINE.md) and `tests/test_live_engine.cpp`.

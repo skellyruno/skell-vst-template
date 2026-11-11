@@ -3,6 +3,7 @@
 // Never create, start, stop or publish from processBlock().
 #include <SkellCore/World.h>
 #include <SkellCore/WorldMusical.h>
+#include <SkellCore/WorldTuning.h>
 #include <juce_core/juce_core.h>
 #include <atomic>
 #include <array>
@@ -50,6 +51,20 @@ public:
         key=unpackMusicalKey(encoded);
         version=word>>8;
         return key.valid() && version!=0;
+    }
+    // UI thread: the entire tuning snapshot is one event. Send a legacy key
+    // announcement too, for consumers not yet updated to musical.tuning.
+    bool publishMusicalTuning(MusicalTuning tuning) noexcept {
+        if (!tuning.valid()) return false;
+        const auto payload=formatMusicalTuning(tuning);
+        const bool sent=publish("musical.tuning",payload.data());
+        if (sent) publishMusicalKey({tuning.root,tuning.mode});
+        return sent;
+    }
+    // UI polling only. A 64-bit atomic preserves key, scale and A4 consistency.
+    bool latestMusicalTuning(MusicalTuning& tuning, std::uint32_t& version) const noexcept {
+        if (!online()) return false;
+        return unpackMusicalTuning(lastTuning_.load(std::memory_order_acquire),tuning,version);
     }
     bool publishMusicalKey(MusicalKey key) noexcept {
         if(!key.valid()) return false;
@@ -104,8 +119,24 @@ private:
                     lastKey_.store(0,std::memory_order_release);
                     lastKeySource_.fill(0);
                 }
+                if(text(frame.instance)==text(lastTuningSource_)) {
+                    lastTuning_.store(0,std::memory_order_release);
+                    lastTuningSource_.fill(0);
+                }
                 const auto current=peers_.load(std::memory_order_relaxed);
                 if (current > 0) peers_.store(current-1,std::memory_order_release);
+            }
+        } else if (frame.kind==Kind::Event && text(frame.topic)=="musical.tuning") {
+            bool isKeySource=false;
+            for (const auto& item : peerInfo_) {
+                if(item.kind==Kind::Peer && text(item.instance)==text(frame.instance) &&
+                   text(item.topic)=="skell.key") {isKeySource=true;break;}
+            }
+            MusicalTuning tuning;
+            if(isKeySource && parseMusicalTuning(text(frame.value),tuning)) {
+                lastTuningSource_=frame.instance;
+                const auto counter=++tuningSequence_;
+                lastTuning_.store(packMusicalTuning(tuning,counter),std::memory_order_release);
             }
         } else if (frame.kind==Kind::Event && text(frame.topic)=="musical.key") {
             // The broker reports source identity separately in PEER frames.
@@ -132,6 +163,8 @@ private:
             peers_.store(0,std::memory_order_release);
             lastKey_.store(0,std::memory_order_release);
             lastKeySource_.fill(0);
+            lastTuning_.store(0,std::memory_order_release);
+            lastTuningSource_.fill(0);
             for(auto& item:peerInfo_) item=Frame{};
             juce::StreamingSocket socket;
             if (socket.connect("127.0.0.1",defaultPort,500)) {
@@ -173,6 +206,7 @@ private:
             online_.store(false,std::memory_order_release);
             peers_.store(0,std::memory_order_release);
             lastKey_.store(0,std::memory_order_release);
+            lastTuning_.store(0,std::memory_order_release);
             // Do not replay stale theme/preset suggestions after reconnect.
             Frame obsolete;
             while (pending_.pop(obsolete)) {}
@@ -183,6 +217,9 @@ private:
     std::array<Frame,32> peerInfo_{};
     std::array<char,48> lastKeySource_{};
     std::uint64_t keySequence_=0;
+    std::uint32_t tuningSequence_=0;
+    std::array<char,48> lastTuningSource_{};
+    std::atomic<std::uint64_t> lastTuning_{0};
     std::atomic<std::uint64_t> lastKey_{0};
     Mailbox<32> pending_; // one UI producer, one worker consumer
     const std::string product_;

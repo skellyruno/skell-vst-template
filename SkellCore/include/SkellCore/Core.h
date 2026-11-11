@@ -122,7 +122,7 @@ public:
         setParameters(decaySeconds_, damping_, wet_);
         ready_ = true;
     }
-    void reset() noexcept { positions_.fill(0); dampingState_.fill(0); for (auto& l : lines_) std::fill(l.begin(), l.end(), 0); }
+    void reset() noexcept { positions_.fill(0); dampingState_.fill(0); for (auto& l : lines_) std::fill(l.begin(), l.end(), 0.0f); }
     void setParameters(float decaySeconds, float damping, float wet) noexcept {
         const float nextDecay = static_cast<float>(detail::clamp(decaySeconds, .15, 20));
         damping_ = static_cast<float>(detail::clamp(damping, 0, .98));

@@ -115,7 +115,9 @@ void SkellAudioProcessorEditor::resized() {
 void SkellAudioProcessorEditor::timerCallback() {
   const bool joined = world_.requested();
   worldButton_.setButtonText(joined ? "LEAVE WORLD" : "JOIN WORLD");
-  if (world_.online())
+  // Presence needs the actual Hub. The separate hub-free tuning mapping does
+  // not imply any SkellWorld peers or a running presence broker.
+  if (world_.hubOnline())
     worldStatus_.setText("WORLD ONLINE  |  " + juce::String(world_.peerCount()) + " peers",
                          juce::dontSendNotification);
   else

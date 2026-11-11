@@ -98,6 +98,18 @@ void testSignalAndBlocks() {
     const double gained=amplitude(out.left,48000,1000);
     const double reductionDb=20*std::log10(gained/original);
     std::cout<<"1 kHz dynamic attenuation: "<<reductionDb<<" dB\n";
+    float mainLevel[LiveMultibandDucker::bands]{};
+    float sideLevel[LiveMultibandDucker::bands]{};
+    float cutLevel[LiveMultibandDucker::bands]{};
+    reference.copyDisplayBands(0, mainLevel, sideLevel, cutLevel);
+    float maximumCut = 0.f;
+    for (int b = 0; b < LiveMultibandDucker::bands; ++b) {
+        assert(std::isfinite(mainLevel[b]) && std::isfinite(sideLevel[b]));
+        assert(std::isfinite(cutLevel[b]) && cutLevel[b] >= 0.f && cutLevel[b] <= 40.f);
+        maximumCut = std::max(maximumCut, cutLevel[b]);
+    }
+    assert(maximumCut > 5.f);
+
     assert(std::isfinite(reductionDb) && reductionDb < -5.0 && reductionDb >= -36.0);
     for (int block : {1,17,64,512,1024}) {
         LiveMultibandDucker e;e.prepare(48000);e.setParameters(p);

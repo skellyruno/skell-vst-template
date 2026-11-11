@@ -90,3 +90,7 @@ provide screenshot capture, image/size validation, scene matrices, and layout-te
 for **real** plugin editors. The opt-in template smoke executable verifies three sizes.
 See [docs/UI_RENDERER.md](../docs/UI_RENDERER.md). Portable SkellCore DSP builds
 remain independent of JUCE and X11.
+
+## Studio UI module (design research items 3 + 5)
+
+Use `#include <SkellCore/StudioUI.h>` for the shared `StudioLookAndFeel`, four subdued `StudioSkin` palettes, persistent per-user `StudioSkinStore`, skin selector population and `configureStudioKnob` helper. This is UI-only, never part of the real-time audio thread. It preserves existing plugin parameter attachments, DSP, and automation IDs. An opt-in quickstart editor and 10-scene real-editor renderer test are included. For adoption and maintenance rules, see [docs/STUDIO_UI.md](../docs/STUDIO_UI.md).

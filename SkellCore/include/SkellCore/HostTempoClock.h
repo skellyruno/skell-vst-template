@@ -6,8 +6,12 @@
 namespace skellcore {
 inline void updateTempoFromPlayhead(TempoClock& clock,
                                     const juce::AudioPlayHead::PositionInfo& position) noexcept {
-    clock.update(position.getBpm().value_or(clock.bpm()),
-                 position.getPpqPosition().value_or(clock.beatPosition()),
-                 position.getIsPlaying());
+    // JUCE 8 PositionInfo returns juce::Optional, which does not expose the
+    // C++23 std::optional::value_or API. Read it via the checked dereference.
+    double bpm=clock.bpm();
+    if (const auto hostBpm=position.getBpm()) bpm=*hostBpm;
+    double ppq=clock.beatPosition();
+    if (const auto hostPpq=position.getPpqPosition()) ppq=*hostPpq;
+    clock.update(bpm,ppq,position.getIsPlaying());
 }
 } // namespace skellcore

@@ -112,12 +112,18 @@ int main(int argc, char** argv) {
         if (scene.mode == 1 && !testTour.replay())
             std::fprintf(stderr, "Tour did not show in renderer scene\n");
     };
-    options.inspect = [&editor] {
+    options.inspect = [&editor, &testTour] {
         juce::StringArray problems;
         for (int i = 0; i < editor.getNumChildComponents(); ++i) {
             const auto* child = editor.getChildComponent(i);
             if (child->isVisible() && !editor.getLocalBounds().contains(child->getBounds()))
                 problems.add("Visible control extends outside window: " + child->getName());
+        }
+        if (const auto* overlay = testTour.overlay()) {
+            if (overlay->informationBounds().intersects(overlay->spotlightBounds()))
+                problems.add("GuidedTour info panel overlaps spotlight target");
+            if (!editor.getLocalBounds().contains(overlay->informationBounds()))
+                problems.add("GuidedTour info panel clipped outside editor");
         }
         return problems;
     };

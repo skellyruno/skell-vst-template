@@ -167,6 +167,19 @@ public:
 
     void resized() override {
         const auto bubble = bubbleBounds();
+        if (bubble.getWidth() < 220) {
+            // Narrow side-docked cards: readable, full-word BACK and NEXT
+            // controls, with SKIP in the heading rather than 3 tiny buttons.
+            constexpr int edge = 10;
+            constexpr int gutter = 6;
+            const int buttonHeight = juce::jmin(27, juce::jmax(18, bubble.getHeight()/5));
+            const int buttonWidth = juce::jmax(1,(bubble.getWidth()-2*edge-gutter)/2);
+            const int y = bubble.getBottom()-edge-buttonHeight;
+            back_.setBounds(bubble.getX()+edge, y, buttonWidth, buttonHeight);
+            next_.setBounds(bubble.getRight()-edge-buttonWidth, y, buttonWidth, buttonHeight);
+            skip_.setBounds(bubble.getRight()-edge-49, bubble.getY()+6, 49, 23);
+            return;
+        }
         const int edge = juce::jmax(3, juce::jmin(10, bubble.getWidth() / 24));
         const int buttonHeight = juce::jmin(28, juce::jmax(18, bubble.getHeight() / 5));
         const int rowTop = bubble.getBottom() - edge - buttonHeight;
@@ -201,26 +214,29 @@ public:
         g.fillRoundedRectangle(card, 10.f);
         g.setColour(colours_.accent.withAlpha(.82f));
         g.drawRoundedRectangle(card.reduced(.7f), 10.f, 1.2f);
+        const auto bubble = bubbleBounds();
+        const bool compact = bubble.getWidth() < 220;
         const auto counter = juce::String(static_cast<int>(index_)+1)
                            + " / " + juce::String(static_cast<int>(steps_.size()));
-        const auto head = juce::Rectangle<int>(bubbleBounds().getX()+13,
-            bubbleBounds().getY()+9, juce::jmax(1,bubbleBounds().getWidth()-62), 22);
+        const auto head = juce::Rectangle<int>(bubble.getX()+13,
+            bubble.getY()+9, juce::jmax(1, bubble.getWidth()-(compact ? 76 : 62)), 22);
         g.setColour(colours_.accent);
-        g.setFont(juce::Font(juce::FontOptions(13.5f).withStyle("Bold")));
+        g.setFont(juce::Font(juce::FontOptions(compact ? 12.0f : 13.5f).withStyle("Bold")));
         g.drawFittedText(steps_[index_].title, head, juce::Justification::centredLeft, 1);
-        auto body = bubbleBounds().reduced(13, 0);
-        body.setY(head.getBottom()+3);
+        auto body = bubble.reduced(13, 0);
+        body.setY(head.getBottom()+(compact ? 16 : 3));
         body.setBottom(juce::jmax(body.getY(), back_.getY()-8));
         g.setColour(colours_.text);
-        g.setFont(juce::Font(juce::FontOptions(11.5f)));
+        g.setFont(juce::Font(juce::FontOptions(compact ? 11.0f : 11.5f)));
         g.drawFittedText(steps_[index_].description, body,
             juce::Justification::topLeft, 4);
         g.setColour(colours_.secondary);
         g.setFont(juce::Font(juce::FontOptions(10.f)));
         g.drawText(counter,
-            juce::Rectangle<int>(bubbleBounds().getRight()-45,
-                bubbleBounds().getY()+9, 32, 22),
-            juce::Justification::centredRight, true);
+            compact ? juce::Rectangle<int>(bubble.getX()+13, bubble.getY()+33,
+                                            juce::jmax(1,bubble.getWidth()-26), 14)
+                    : juce::Rectangle<int>(bubble.getRight()-45, bubble.getY()+9, 32, 22),
+            compact ? juce::Justification::centredLeft : juce::Justification::centredRight, true);
     }
 
 private:

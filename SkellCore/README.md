@@ -98,3 +98,7 @@ Use `#include <SkellCore/StudioUI.h>` for the shared `StudioLookAndFeel`, four s
 ## Shared Live Engine (tracking-friendly low-latency infrastructure)
 
 `<SkellCore/LiveEngine.h>` now offers `live::LatencyContract`, the explicit Live/Studio profile enum, and an allocation-free, zero-lookahead **causal multiband sidechain** alternative. It is suitable for spectral-ducking-style effects, not a universal pitch or reverb replacement. DSP/DAW/hardware delays must be measured and PDC reported by the owning plugin on a non-audio thread. See [the Live Engine guide](../docs/LIVE_ENGINE.md) and `tests/test_live_engine.cpp`.
+
+### Latency-aligned dry/wet and bypass
+
+Portable `<SkellCore/LatencyAlignedMix.h>` supplies sample-accurate pre-delayed dry audio, click-smoothed bypass, multi-channel support, and no realtime allocations. The owning plugin still reports the real wet-path latency. See [integration notes](../docs/LATENCY_ALIGNED_MIX.md) and `tests/test_latency_aligned_mix.cpp`.

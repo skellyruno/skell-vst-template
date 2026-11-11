@@ -98,3 +98,7 @@ Use `#include <SkellCore/StudioUI.h>` for the shared `StudioLookAndFeel`, four s
 ## Shared Live Engine (tracking-friendly low-latency infrastructure)
 
 `<SkellCore/LiveEngine.h>` now offers `live::LatencyContract`, the explicit Live/Studio profile enum, and an allocation-free, zero-lookahead **causal multiband sidechain** alternative. It is suitable for spectral-ducking-style effects, not a universal pitch or reverb replacement. DSP/DAW/hardware delays must be measured and PDC reported by the owning plugin on a non-audio thread. See [the Live Engine guide](../docs/LIVE_ENGINE.md) and `tests/test_live_engine.cpp`.
+
+### Guided Tours (optional, only for complex editors)
+
+Include `<SkellCore/GuidedTour.h>` and instantiate `skellcore::ui::GuidedTourController` **in the JUCE editor** to recreate OmniChoir-style first-run spotlight onboarding with Back/Next/Skip/replay. It persists completion per plugin/version outside presets, handles nested/tabs with safe target pointers, supports the shared four skins, and never touches the audio thread. See [the integration guide](../docs/GUIDED_TOURS.md). The quickstart template does not enable tours automatically.

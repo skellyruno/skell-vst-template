@@ -186,7 +186,14 @@ public:
     }
     void pushLevel(float peak) {
         const auto level = std::isfinite(peak) ? juce::jlimit(0.f, 1.f, peak) : 0.f;
-        values_[write_] = level;
+        // An already-flat line does not need redraws on an idle audio stream.
+        // After an active signal, still advance zeros until the old trace
+        // scrolls off-screen instead of leaving a frozen waveform behind.
+        if (level <= 0.f && nonzero_ == 0) return;
+        auto& slot = values_[write_];
+        if (slot > 0.f) --nonzero_;
+        slot = level;
+        if (slot > 0.f) ++nonzero_;
         write_ = (write_ + 1) % values_.size();
         repaint();
     }
@@ -210,6 +217,7 @@ public:
 private:
     std::array<float, 64> values_ {};
     std::size_t write_ = 0;
+    std::size_t nonzero_ = 0;
     juce::Colour line_ { 0xff90ff44 }, baseline_ { 0xff344236 };
 };
 

@@ -66,6 +66,7 @@ public:
     void setModified(bool value) {
         if (modified_ == value) return;
         modified_ = value;
+        resized();  // reserve space for the dirty-state indicator
         repaint();
     }
     bool isModified() const noexcept { return modified_; }

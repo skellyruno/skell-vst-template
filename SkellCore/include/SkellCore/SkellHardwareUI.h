@@ -40,9 +40,15 @@ inline void drawHardwareKnob(juce::Graphics& g, juce::Rectangle<float> bounds,
                               float position, float startAngle, float endAngle,
                               juce::Colour accent, juce::Colour face,
                               juce::Colour rim, juce::Colour pointer) {
+  // Avoid invalid geometry from corrupt host state or zero-sized controls.
+  // Normal-sized, finite-value drawing is unchanged.
+  if (!std::isfinite(bounds.getX()) || !std::isfinite(bounds.getY())
+      || !std::isfinite(bounds.getWidth()) || !std::isfinite(bounds.getHeight())
+      || bounds.getWidth() < 20.f || bounds.getHeight() < 20.f
+      || !std::isfinite(startAngle) || !std::isfinite(endAngle)) return;
   const auto center = bounds.getCentre();
   const float radius = std::max(7.0f, std::min(bounds.getWidth(), bounds.getHeight()) * 0.315f);
-  const float normalized = std::clamp(position, 0.0f, 1.0f);
+  const float normalized = std::isfinite(position) ? std::clamp(position, 0.0f, 1.0f) : 0.0f;
   const float angle = startAngle + normalized * (endAngle - startAngle);
   g.setColour(juce::Colours::black.withAlpha(0.65f));
   g.fillEllipse(center.x-radius-6.0f, center.y-radius-4.0f, 2*radius+12.0f, 2*radius+12.0f);

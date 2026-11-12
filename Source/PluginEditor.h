@@ -2,6 +2,7 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include <SkellCore/StudioUI.h>
+#include <SkellCore/SkellUnifiedControls.h>
 #include <SkellCore/WorldLink.h>
 
 class SkellAudioProcessorEditor final : public juce::AudioProcessorEditor, private juce::Timer {
@@ -18,22 +19,22 @@ public:
 
 private:
   void timerCallback() override;
-  skellcore::ui::StudioLookAndFeel skin_;
+  unsigned int worldPollTick_ = 0; // Refresh World status at ~4 Hz, not 24 Hz
+  skellcore::ui::SkellHardwareLookAndFeel skin_;
   skellcore::world::WorldLink& world_;
-  // A transparent hit target over the vector skull-key mark; no extra UI chrome.
-  struct SkullMarkHit final : juce::Button {
-    SkullMarkHit() : juce::Button("Cycle SkellCore skin") {
-      setMouseCursor(juce::MouseCursor::PointingHandCursor);
-      setComponentID("skellcore.skull-theme");
-      setTooltip("Click skull to change the SKELL appearance");
-    }
-    void paintButton(juce::Graphics&, bool, bool) override {}
-  } skullMark_;
+  SkellAudioProcessor& processor_;
+  skellcore::ui::SkellSkullButton skullMark_;
+  skellcore::ui::SkellSettingsButton settingsButton_;
+  skellcore::ui::SkellSettingsSurface settingsPanel_ {"QUICKSTART SETTINGS"};
+  juce::ToggleButton showAudioLine_ {"SHOW AUDIO LINE"};
+  skellcore::ui::SkellAudioLine audioLine_;
   juce::ComboBox skinSelector_;
   juce::TextButton worldButton_{"JOIN WORLD"};
   juce::Label worldStatus_;
   juce::Slider gain;
   juce::Label title;
+  skellcore::ui::SkellPowerButton powerButton_;
   juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;
+  juce::AudioProcessorValueTreeState::ButtonAttachment powerAttachment_;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SkellAudioProcessorEditor)
 };

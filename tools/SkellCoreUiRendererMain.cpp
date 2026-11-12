@@ -7,12 +7,98 @@
 #include <SkellCore/GuidedTour.h>
 #include <JuceHeader.h>
 #include <cstdio>
+#include <cmath>
+#include <limits>
 
 int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI juceGui;
     SkellAudioProcessor processor;
     processor.prepareToPlay(48000.0, 512);
     SkellAudioProcessorEditor editor(processor);
+
+    // Shared identity and UI-only meter regression, no mock DAW audio.
+    skellcore::LevelBridge level;
+    level.publish(0.2f);
+    level.publish(0.8f); // retain the maximum peak between GUI frames
+    level.publish(0.1f);
+    if (std::abs(level.take() - 0.8f) > 0.0001f || level.take() != 0.f) {
+        std::fprintf(stderr, "Shared peak bridge dropped a transient\n");
+        return 1;
+    }
+    level.publish(std::numeric_limits<float>::quiet_NaN());
+    if (level.take() != 0.f) {
+        std::fprintf(stderr, "Shared peak bridge accepted non-finite input\n");
+        return 1;
+    }
+    skellcore::ui::SkellPowerButton power;
+    power.setToggleState(true, juce::dontSendNotification);
+    if (!power.getToggleState() || !power.getClickingTogglesState()) {
+        std::fprintf(stderr, "Shared power toggle semantics broken\n");
+        return 1;
+    }
+    skellcore::ui::SkellAudioLine audioLine;
+    audioLine.setBounds(0, 0, 180, 18);
+    audioLine.pushLevel(0.7f);
+    for (int i = 0; i < 65; ++i) audioLine.pushLevel(0.f);
+    juce::Image settled(juce::Image::ARGB, 180, 18, true);
+    juce::Image pristine(juce::Image::ARGB, 180, 18, true);
+    juce::Graphics settledGraphics(settled);
+    audioLine.paint(settledGraphics);
+    skellcore::ui::SkellAudioLine quietLine;
+    quietLine.setBounds(0, 0, 180, 18);
+    juce::Graphics pristineGraphics(pristine);
+    quietLine.paint(pristineGraphics);
+    for (int y = 0; y < 18; ++y)
+        for (int x = 0; x < 180; ++x)
+            if (settled.getPixelAt(x, y) != pristine.getPixelAt(x, y)) {
+                std::fprintf(stderr, "Audio line did not return to flat idle state\\n");
+                return 1;
+            }
+    // Non-finite knob input must render exactly like a safe zero value.
+    juce::Image validDial(juce::Image::ARGB, 96, 96, true);
+    juce::Image invalidDial(juce::Image::ARGB, 96, 96, true);
+    const auto drawDial = [](juce::Image& image, float position) {
+        juce::Graphics g(image);
+        skellcore::ui::drawHardwareKnob(g, {16.f, 16.f, 64.f, 64.f},
+            position, -2.5f, 2.5f,
+            juce::Colours::green, juce::Colours::grey,
+            juce::Colours::darkgrey, juce::Colours::white);
+    };
+    drawDial(validDial, 0.f);
+    drawDial(invalidDial, std::numeric_limits<float>::quiet_NaN());
+    for (int y = 0; y < 96; ++y)
+        for (int x = 0; x < 96; ++x)
+            if (validDial.getPixelAt(x, y) != invalidDial.getPixelAt(x, y)) {
+                std::fprintf(stderr, "Invalid hardware knob position changed paint\\n");
+                return 1;
+            }
+    skellcore::ui::SkellSettingsSurface settings("TEST PLUGIN SETTINGS");
+    settings.setSize(220, 120);
+    if (settings.contentBounds().isEmpty()) {
+        std::fprintf(stderr, "Shared settings panel has no content area\n");
+        return 1;
+    }
+    juce::Image plain(juce::Image::ARGB, 96, 96, true);
+    juce::Image eqMark(juce::Image::ARGB, 96, 96, true);
+    {
+        juce::Graphics g(plain);
+        skellcore::ui::drawSkellSkull(g, {0.f, 0.f, 96.f, 96.f});
+    }
+    {
+        juce::Graphics g(eqMark);
+        skellcore::ui::drawSkellSkull(g, {0.f, 0.f, 96.f, 96.f},
+                                      skellcore::ui::SkullElement::Equalizer);
+    }
+    bool differs = false;
+    for (int y = 0; y < 96 && !differs; ++y)
+        for (int x = 0; x < 96; ++x)
+            if (plain.getPixelAt(x,y) != eqMark.getPixelAt(x,y)) {
+                differs = true; break;
+            }
+    if (!differs) {
+        std::fprintf(stderr, "Plugin skull element did not change the mark\n");
+        return 1;
+    }
 
     // Test converted coordinate handling through a nested JUCE component
     // and a per-step panel activation callback without touching plugin DSP.
@@ -95,6 +181,36 @@ int main(int argc, char** argv) {
     }
     if (realKnob == nullptr || realSkin == nullptr) {
         std::fprintf(stderr, "Tour targets not found in real JUCE editor\n");
+        return 1;
+    }
+    // Verify the real product settings gear toggles its own panel, and that
+    // the World label is available before the editor's first timer tick.
+    skellcore::ui::SkellSettingsButton* realGear = nullptr;
+    skellcore::ui::SkellSettingsSurface* realSettings = nullptr;
+    bool initialOffline = false;
+    for (int i = 0; i < editor.getNumChildComponents(); ++i) {
+        auto* child = editor.getChildComponent(i);
+        if (auto* gear = dynamic_cast<skellcore::ui::SkellSettingsButton*>(child))
+            realGear = gear;
+        if (auto* panel = dynamic_cast<skellcore::ui::SkellSettingsSurface*>(child))
+            realSettings = panel;
+        if (auto* label = dynamic_cast<juce::Label*>(child))
+            if (label->getComponentID() == "skellcore.world.status"
+                && label->getText() == "OFFLINE") initialOffline = true;
+    }
+    if (!realGear || !realSettings || !realGear->onClick
+        || realSettings->isVisible() || !initialOffline) {
+        std::fprintf(stderr, "Settings or first-frame World status is broken\\n");
+        return 1;
+    }
+    realGear->onClick();
+    if (!realSettings->isVisible()) {
+        std::fprintf(stderr, "Settings gear did not open plugin settings\\n");
+        return 1;
+    }
+    realGear->onClick();
+    if (realSettings->isVisible()) {
+        std::fprintf(stderr, "Settings gear did not close plugin settings\\n");
         return 1;
     }
     skellcore::ui::GuidedTourController testTour(editor, "skellcore-ci-render-only", 1);

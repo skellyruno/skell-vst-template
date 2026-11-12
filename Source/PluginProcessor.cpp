@@ -8,6 +8,7 @@ SkellAudioProcessor::SkellAudioProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout SkellAudioProcessor::createLayout() {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
   layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Gain",juce::NormalisableRange<float>(0.0f,2.0f,0.001f),1.0f));
+  layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"enabled",1},"Enabled",true));
   return layout;
 }
 bool SkellAudioProcessor::isBusesLayoutSupported(const BusesLayout& l) const {
@@ -20,7 +21,11 @@ void SkellAudioProcessor::prepareToPlay(double sampleRate, int) {
   smoothedGain_.reset(safeRate, 0.015);
   const auto* raw = parameters.getRawParameterValue("gain");
   const float initial = raw ? raw->load() : 1.0f;
-  smoothedGain_.setCurrentAndTargetValue(std::isfinite(initial) ? juce::jlimit(0.0f, 2.0f, initial) : 1.0f);
+  const auto* enabled = parameters.getRawParameterValue("enabled");
+  const bool active = enabled == nullptr || enabled->load() >= 0.5f;
+  smoothedGain_.setCurrentAndTargetValue(active
+      ? (std::isfinite(initial) ? juce::jlimit(0.0f, 2.0f, initial) : 1.0f)
+      : 1.0f);
 }
 void SkellAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
   juce::ScopedNoDenormals guard;
@@ -28,7 +33,12 @@ void SkellAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
   if (frames <= 0) return;
   const auto* raw = parameters.getRawParameterValue("gain");
   const float requested = raw ? raw->load() : 1.0f;
-  const float target = std::isfinite(requested) ? juce::jlimit(0.0f, 2.0f, requested) : 1.0f;
+  const auto* enabled = parameters.getRawParameterValue("enabled");
+  const bool active = enabled == nullptr || enabled->load() >= 0.5f;
+  const float requestedGain = std::isfinite(requested)
+      ? juce::jlimit(0.0f, 2.0f, requested) : 1.0f;
+  // Bypass gain by smoothly returning to unity, never by muting the stream.
+  const float target = active ? requestedGain : 1.0f;
   smoothedGain_.setTargetValue(target);
   if (!smoothedGain_.isSmoothing()) {
     buffer.applyGain(target);
@@ -37,6 +47,11 @@ void SkellAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     const auto end = smoothedGain_.skip(frames);
     buffer.applyGainRamp(0, frames, initial, end);
   }
+  // One scalar for the shared UI line, with no locks, allocations or UI calls.
+  float peak = 0.f;
+  for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+    peak = juce::jmax(peak, buffer.getMagnitude(ch, 0, frames));
+  peakBridge_.publish(peak);
 }
 juce::AudioProcessorEditor* SkellAudioProcessor::createEditor() { return new SkellAudioProcessorEditor(*this); }
 void SkellAudioProcessor::getStateInformation(juce::MemoryBlock& dest) {

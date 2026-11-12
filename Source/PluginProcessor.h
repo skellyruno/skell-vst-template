@@ -1,6 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <SkellCore/WorldLink.h>
+#include <SkellCore/LevelBridge.h>
 class SkellAudioProcessor final : public juce::AudioProcessor {
 public:
   SkellAudioProcessor();
@@ -26,8 +27,11 @@ public:
   // No connection is attempted unless the user explicitly joins.
   skellcore::world::WorldLink worldLink{"skellcore.quickstart", "Skell Quickstart"};
   juce::AudioProcessorValueTreeState parameters;
+  // UI meter is a non-persistent scalar bridge; it never changes audio.
+  float takeOutputPeak() noexcept { return peakBridge_.take(); }
   static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 private:
   juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain_{1.0f};
+  skellcore::LevelBridge peakBridge_;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SkellAudioProcessor)
 };

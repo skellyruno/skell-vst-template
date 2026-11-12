@@ -111,7 +111,7 @@ inline void drawSkellElement(juce::Graphics& g, SkullElement element,
             g.drawLine(24.f, 8.f, 24.f, 14.f, 1.8f);
             g.fillEllipse(22.8f, 6.6f, 2.5f, 2.5f);
             break;
-        case SkullElement::Cast:
+        case SkullElement::Cast: {
             g.fillEllipse(22.9f, 11.f, 2.2f, 2.2f);
             juce::Path inner, outer;
             inner.addCentredArc(24.f, 12.f, 3.6f, 3.6f, 0.f,
@@ -121,6 +121,7 @@ inline void drawSkellElement(juce::Graphics& g, SkullElement element,
             g.strokePath(inner, juce::PathStrokeType(1.25f));
             g.strokePath(outer, juce::PathStrokeType(1.0f));
             break;
+        }
         case SkullElement::Fan:
             g.fillEllipse(22.9f, 9.5f, 2.4f, 2.4f);
             for (int i = 0; i < 3; ++i) {

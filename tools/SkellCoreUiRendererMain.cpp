@@ -147,20 +147,19 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "Stereo meter dropped input peaks\n");
         return 1;
     }
+    juce::Image horizontal(juce::Image::ARGB, 220, 36, true);
     {
-        juce::Image horizontal(juce::Image::ARGB, 220, 36, true);
         juce::Graphics g(horizontal);
         stereo.paint(g);
-        // Meter must render a visible trace, not merely compile.
-        int visiblePixels = 0;
-        for (int y = 0; y < horizontal.getHeight(); ++y)
-            for (int x = 0; x < horizontal.getWidth(); ++x)
-                if (horizontal.getPixelAt(x, y).getAlpha() != 0)
-                    ++visiblePixels;
-        if (visiblePixels < 100) {
-            std::fprintf(stderr, "Stereo meter rendered an empty image\n");
-            return 1;
-        }
+    } // Allow Windows graphics backends to flush before inspecting pixels.
+    int visiblePixels = 0;
+    for (int y = 0; y < horizontal.getHeight(); ++y)
+        for (int x = 0; x < horizontal.getWidth(); ++x)
+            if (horizontal.getPixelAt(x, y).getAlpha() != 0)
+                ++visiblePixels;
+    if (visiblePixels < 100) {
+        std::fprintf(stderr, "Stereo meter rendered an empty image after flush\n");
+        return 1;
     }
     stereo.setVertical(true);
     stereo.setBounds(0, 0, 36, 220);

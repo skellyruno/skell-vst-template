@@ -1,7 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <SkellCore/WorldLink.h>
-#include <SkellCore/SkellUnifiedControls.h>
+#include <SkellCore/LevelBridge.h>
 class SkellAudioProcessor final : public juce::AudioProcessor {
 public:
   SkellAudioProcessor();
@@ -32,6 +32,6 @@ public:
   static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 private:
   juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedGain_{1.0f};
-  skellcore::ui::SkellLevelBridge peakBridge_;
+  skellcore::LevelBridge peakBridge_;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SkellAudioProcessor)
 };

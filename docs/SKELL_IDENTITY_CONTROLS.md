@@ -140,10 +140,12 @@ resynthesizes audio, records input or changes host latency.
 ## Compatibility and implementation status
 
 The Skell Quickstart example adopts the neutral master skull, hardware knob
-finish, embedded settings panel for its own UI preference, and a real signal
-peak line. Its original gain parameter ID and automation semantics remain
-unchanged. The reusable power control is provided, but the **demo itself does
-not invent a new bypass parameter** just to display a power symbol.
+finish, embedded settings panel for its own UI preference, a real signal
+peak line, and the new functional power toggle. The original gain parameter
+ID and gain automation semantics are unchanged. A new boolean 'enabled'
+parameter (default true) bypasses gain by smoothly returning to unity rather
+than muting; newly generated plugin projects include this safe starting point.
+Validate legacy project state restoration when updating an already-shipped VST3.
 
 There is no global migration of existing VST3 editors in this change. Real
 Windows / FL Studio validation is required for each adopting product.

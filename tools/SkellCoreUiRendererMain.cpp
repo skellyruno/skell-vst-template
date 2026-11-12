@@ -25,7 +25,11 @@ int main(int argc, char** argv) {
     if (coreSkin == delaySkin || coreSkin == juce::File()
         || delaySkin == juce::File()
         || traversalSkin.getParentDirectory() != coreSkin.getParentDirectory()
-        || skellcore::ui::SkellAppearanceStore::fileFor(" ").existsAsFile()) {
+        || skellcore::ui::SkellAppearanceStore::fileFor(" skell.delay ") != delaySkin
+        || skellcore::ui::SkellAppearanceStore::fileFor(" ") != juce::File()
+        || skellcore::ui::SkellAppearanceStore::load(
+               " ", skellcore::ui::StudioSkin::Crimson)
+               != skellcore::ui::StudioSkin::Crimson) {
         std::fprintf(stderr, "Product appearance isolation or path safety failed\n");
         return 1;
     }

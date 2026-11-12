@@ -9,7 +9,10 @@ class LevelBridge {
 public:
     void publish(float peak) noexcept {
         if (!std::isfinite(peak) || peak < 0.f) peak = 0.f;
-        latest_.store(peak > 1.f ? 1.f : peak, std::memory_order_relaxed);
+        if (peak > 1.f) peak = 1.f;
+        auto old = latest_.load(std::memory_order_relaxed);
+        while (old < peak && !latest_.compare_exchange_weak(
+                   old, peak, std::memory_order_relaxed)) {}
     }
     float take() noexcept {
         return latest_.exchange(0.f, std::memory_order_relaxed);

@@ -36,3 +36,17 @@ record the commit SHA, runner, iteration counts, and result. Record a
 regression only if repeatable under comparable conditions; avoid overfitting
 to noise in 1-2 measurements. The current final screenshots and generated
 VST3 checks are separate release gates, not benchmark inputs.
+
+## Offscreen stereo-meter paint baseline
+
+The corrected Windows JUCE headless-renderer run #43332134308 measured
+**924.84 microseconds per synthetic frame** across 500 offscreen paint
+iterations at 220x36. This measurement includes creating/closing a JUCE
+Graphics context for each frame and must NOT be interpreted as GPU cost,
+FL Studio CPU usage, real-time audio latency, or a sustained per-plugin load.
+Host compositing, JUCE rendering backends, DPI and the plugin window's
+visibility all affect the result. Use this figure only as a starting
+point for like-for-like headless renderer comparisons.
+
+The same renderer successfully captured **13/13** UI/guided-tour scenes,
+tested preset selection/callbacks, stereo meter paint and responsive bounds.

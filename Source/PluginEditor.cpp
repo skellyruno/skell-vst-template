@@ -62,6 +62,7 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
     worldPollTick_ = 5; // force a status refresh on the next UI tick
     timerCallback();
   };
+  worldStatus_.setComponentID("skellcore.world.status");
   worldStatus_.setJustificationType(juce::Justification::centredLeft);
   worldStatus_.setFont(juce::Font(juce::FontOptions(11.0f)));
   addAndMakeVisible(worldButton_);

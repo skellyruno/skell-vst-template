@@ -195,7 +195,8 @@ int main(int argc, char** argv) {
         if (auto* panel = dynamic_cast<skellcore::ui::SkellSettingsSurface*>(child))
             realSettings = panel;
         if (auto* label = dynamic_cast<juce::Label*>(child))
-            if (label->getText() == "OFFLINE") initialOffline = true;
+            if (label->getComponentID() == "skellcore.world.status"
+                && label->getText() == "OFFLINE") initialOffline = true;
     }
     if (!realGear || !realSettings || !realGear->onClick
         || realSettings->isVisible() || !initialOffline) {

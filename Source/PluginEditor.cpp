@@ -5,7 +5,8 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
       skin_(skellcore::ui::StudioSkinStore::load()),
       world_(p.worldLink),
       processor_(p),
-      gainAttachment(p.parameters, "gain", gain) {
+      gainAttachment(p.parameters, "gain", gain),
+      powerAttachment_(p.parameters, "enabled", powerButton_) {
   setLookAndFeel(&skin_);
   setResizable(true, true);
   setResizeLimits(390, 250, 840, 560);
@@ -39,6 +40,7 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   };
   addAndMakeVisible(skullMark_);
 
+  addAndMakeVisible(powerButton_);
   addAndMakeVisible(settingsButton_);
   settingsButton_.onClick = [this] {
     settingsPanel_.setVisible(!settingsPanel_.isVisible());
@@ -87,6 +89,7 @@ void SkellAudioProcessorEditor::setStudioSkin(skellcore::ui::StudioSkin selectio
   const auto p = skin_.palette();
   skullMark_.setBrandColours({p.foreground, p.background, p.accent, p.secondary});
   settingsButton_.setColours(p.accent, p.surface);
+  powerButton_.setColours(p.accent, p.secondary, p.surface);
   settingsPanel_.setColours(p.surface, p.border, p.foreground, p.accent);
   audioLine_.setColours(p.accent, p.track);
   repaint();
@@ -109,7 +112,7 @@ void SkellAudioProcessorEditor::paint(juce::Graphics& g) {
   g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
   g.setColour(theme.secondary);
   g.drawFittedText("SKELLCORE  /  VST TEMPLATE",
-      78, 25, getWidth()-150, 18,
+      78, 25, getWidth()-200, 18,
       juce::Justification::centredRight, 1);
   g.setColour(theme.accent);
   g.setFont(juce::Font(juce::FontOptions(12.5f).withStyle("Bold")));
@@ -127,6 +130,7 @@ void SkellAudioProcessorEditor::resized() {
   skinSelector_.setBounds(w-158, 49, 126, 27);
   skullMark_.setBounds(24, 14, 37, 34);
   settingsButton_.setBounds(w-65, 15, 32, 30);
+  powerButton_.setBounds(w-105, 15, 32, 30);
   const int knobSize = juce::jmin(156, juce::jmax(70, h-195));
   gain.setBounds((w-knobSize)/2, 103, knobSize, knobSize);
   worldButton_.setBounds(w/2 - 151, h-77, 122, 29);

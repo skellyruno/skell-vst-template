@@ -5,11 +5,15 @@
 #include <SkellCore/HeadlessUIRenderer.h>
 #include <SkellCore/StudioUI.h>
 #include <SkellCore/SkellAppearanceStore.h>
+#include <SkellCore/SkellPresetBar.h>
+#include <SkellCore/SkellMeterControls.h>
+#include <SkellCore/SkellResponsiveLayout.h>
 #include <SkellCore/GuidedTour.h>
 #include <JuceHeader.h>
 #include <cstdio>
 #include <cmath>
 #include <limits>
+#include <chrono>
 
 int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI juceGui;
@@ -34,6 +38,144 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+    // Preset browser never modifies host parameters or storage itself.
+    skellcore::ui::SkellPresetBar presets;
+    presets.setBounds(0, 0, 360, 36);
+    int callbackCount = 0, lastPreset = -1;
+    presets.onPresetSelected = [&](int index) {
+        ++callbackCount;
+        lastPreset = index;
+    };
+    presets.setPresets(juce::StringArray{"Clean", "Warm", "Bright"}, 0);
+    if (presets.selectedIndex() != 0 || presets.presetCount() != 3
+        || presets.previousButton().isEnabled()
+        || !presets.nextButton().isEnabled()
+        || presets.selectPreset(0, true)) {
+        std::fprintf(stderr, "Preset bar initial state or no-op selection failed\n");
+        return 1;
+    }
+    if (!presets.selectPreset(1, true) || lastPreset != 1 || callbackCount != 1) {
+        std::fprintf(stderr, "Preset bar did not report one selection\n");
+        return 1;
+    }
+    presets.nextButton().onClick();
+    if (presets.selectedIndex() != 2 || lastPreset != 2 || callbackCount != 2
+        || presets.nextButton().isEnabled()) {
+        std::fprintf(stderr, "Preset bar exceeded its last item\n");
+        return 1;
+    }
+    presets.previousButton().onClick();
+    if (presets.selectedIndex() != 1 || callbackCount != 3) {
+        std::fprintf(stderr, "Preset bar navigation callback failed\n");
+        return 1;
+    }
+    presets.setModified(true);
+    if (!presets.isModified()) {
+        std::fprintf(stderr, "Preset dirty state failed\n");
+        return 1;
+    }
+    for (int width : {128, 225, 420}) {
+        presets.setBounds(0, 0, width, 32);
+        for (int i = 0; i < presets.getNumChildComponents(); ++i) {
+            auto* child = presets.getChildComponent(i);
+            if (child->isVisible()
+                && !presets.getLocalBounds().contains(child->getBounds())) {
+                std::fprintf(stderr, "Preset layout clipped at width %d\n", width);
+                return 1;
+            }
+        }
+    }
+    presets.setPresets({});
+    if (presets.selectedIndex() != -1
+        || presets.selector().isEnabled()
+        || presets.nextButton().isEnabled()
+        || presets.previousButton().isEnabled()
+        || presets.selectPreset(0, true)) {
+        std::fprintf(stderr, "Empty preset bank was not handled safely\n");
+        return 1;
+    }
+
+    // Responsive cells must stay non-overlapping within three common editor
+    // widths; undersized regions must fail closed, never clip controls.
+    skellcore::ui::SkellBreakpoints breakpoints;
+    if (breakpoints.classify(390) != skellcore::ui::SkellLayoutDensity::Compact
+        || breakpoints.classify(540) != skellcore::ui::SkellLayoutDensity::Regular
+        || breakpoints.classify(840) != skellcore::ui::SkellLayoutDensity::Wide) {
+        std::fprintf(stderr, "Responsive breakpoints misclassified widths\n");
+        return 1;
+    }
+    for (int width : {320, 480, 840}) {
+        const juce::Rectangle<int> region {12, 24, width-24, 320};
+        const auto cells = skellcore::ui::skellResponsiveCells(region, 9, 135, 72, 8, 4);
+        if (cells.size() != 9) {
+            std::fprintf(stderr, "Responsive grid failed width %d\n", width);
+            return 1;
+        }
+        for (std::size_t i = 0; i < cells.size(); ++i) {
+            if (cells[i].isEmpty() || !region.contains(cells[i])) {
+                std::fprintf(stderr, "Responsive cell clipped width %d\n", width);
+                return 1;
+            }
+            for (std::size_t j = i+1; j < cells.size(); ++j) {
+                if (cells[i].intersects(cells[j])) {
+                    std::fprintf(stderr, "Responsive grid overlap at width %d\n", width);
+                    return 1;
+                }
+            }
+        }
+    }
+    if (!skellcore::ui::skellResponsiveCells({0, 0, 3, 2}, 20).empty()) {
+        std::fprintf(stderr, "Undersized grid did not fail safely\n");
+        return 1;
+    }
+
+    // Two-channel visual meter: left and right remain independent, values
+    // stay finite, and both horizontal and vertical painting complete.
+    skellcore::ui::SkellStereoMeter stereo;
+    stereo.setBounds(0, 0, 220, 36);
+    stereo.pushLevels(.8f, .3f, 1.f/24.f);
+    if (stereo.leftReading().level < .799f
+        || stereo.rightReading().level < .299f) {
+        std::fprintf(stderr, "Stereo meter dropped input peaks\n");
+        return 1;
+    }
+    {
+        juce::Image horizontal(juce::Image::ARGB, 220, 36, true);
+        juce::Graphics g(horizontal);
+        stereo.paint(g);
+    }
+    stereo.setVertical(true);
+    stereo.setBounds(0, 0, 36, 220);
+    stereo.pushLevels(std::numeric_limits<float>::quiet_NaN(),
+                      std::numeric_limits<float>::infinity(), 1.f/24.f);
+    if (!std::isfinite(stereo.leftReading().level)
+        || !std::isfinite(stereo.rightReading().level)) {
+        std::fprintf(stderr, "Stereo meter accepted invalid values\n");
+        return 1;
+    }
+    {
+        juce::Image vertical(juce::Image::ARGB, 36, 220, true);
+        juce::Graphics g(vertical);
+        stereo.paint(g);
+    }
+
+    // Informational-only GUI paint baseline. Not a latency guarantee.
+    {
+        juce::Image performanceSurface(juce::Image::ARGB, 220, 36, true);
+        stereo.setVertical(false);
+        stereo.setBounds(0, 0, 220, 36);
+        const auto start = std::chrono::steady_clock::now();
+        for (int i = 0; i < 500; ++i) {
+            stereo.pushLevels(float(i%50)/50.f, float(i%30)/30.f, 1.f/24.f);
+            juce::Graphics g(performanceSurface);
+            stereo.paint(g);
+        }
+        const auto elapsed = std::chrono::duration<double,std::micro>(
+            std::chrono::steady_clock::now()-start).count();
+        std::printf("SkellCore stereo meter paint: %.2f us/frame (500 frames, non-gating)\n",
+                    elapsed / 500.);
+    }
 
     // Shared identity and UI-only meter regression, no mock DAW audio.
     skellcore::LevelBridge level;

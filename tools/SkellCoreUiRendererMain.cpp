@@ -4,6 +4,7 @@
 #include "../Source/PluginEditor.h"
 #include <SkellCore/HeadlessUIRenderer.h>
 #include <SkellCore/StudioUI.h>
+#include <SkellCore/SkellAppearanceStore.h>
 #include <SkellCore/GuidedTour.h>
 #include <JuceHeader.h>
 #include <cstdio>
@@ -15,6 +16,20 @@ int main(int argc, char** argv) {
     SkellAudioProcessor processor;
     processor.prepareToPlay(48000.0, 512);
     SkellAudioProcessorEditor editor(processor);
+
+    // Independent product theme preferences must not alias each other or
+    // permit IDs to escape the SkellAudio/Appearance directory.
+    const auto coreSkin = skellcore::ui::SkellAppearanceStore::fileFor("skellcore.quickstart");
+    const auto delaySkin = skellcore::ui::SkellAppearanceStore::fileFor("skell.delay");
+    const auto traversalSkin = skellcore::ui::SkellAppearanceStore::fileFor("../../outside");
+    if (coreSkin == delaySkin || coreSkin == juce::File()
+        || delaySkin == juce::File()
+        || traversalSkin.getParentDirectory() != coreSkin.getParentDirectory()
+        || skellcore::ui::SkellAppearanceStore::fileFor(" ").existsAsFile()) {
+        std::fprintf(stderr, "Product appearance isolation or path safety failed\n");
+        return 1;
+    }
+
 
     // Shared identity and UI-only meter regression, no mock DAW audio.
     skellcore::LevelBridge level;

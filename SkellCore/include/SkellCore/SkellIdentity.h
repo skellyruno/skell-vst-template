@@ -6,6 +6,8 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <cmath>
 #include <functional>
+#include <initializer_list>
+#include <utility>
 
 namespace skellcore::ui {
 
@@ -111,10 +113,13 @@ inline void drawSkellElement(juce::Graphics& g, SkullElement element,
             break;
         case SkullElement::Cast:
             g.fillEllipse(22.9f, 11.f, 2.2f, 2.2f);
-            g.drawArc(juce::Rectangle<float>(20.f, 8.1f, 8.f, 8.f),
-                      -1.1f, 1.1f, 1.25f);
-            g.drawArc(juce::Rectangle<float>(17.8f, 5.9f, 12.4f, 12.4f),
-                      -1.1f, 1.1f, 1.0f);
+            juce::Path inner, outer;
+            inner.addCentredArc(24.f, 12.f, 3.6f, 3.6f, 0.f,
+                                -.9f, .9f, true);
+            outer.addCentredArc(24.f, 12.f, 5.6f, 5.6f, 0.f,
+                                -.9f, .9f, true);
+            g.strokePath(inner, juce::PathStrokeType(1.25f));
+            g.strokePath(outer, juce::PathStrokeType(1.0f));
             break;
         case SkullElement::Fan:
             g.fillEllipse(22.9f, 9.5f, 2.4f, 2.4f);

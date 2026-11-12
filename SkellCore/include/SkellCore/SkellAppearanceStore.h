@@ -3,7 +3,6 @@
 // A plugin's appearance never changes audio, automation, or DAW preset state.
 #include <SkellCore/StudioUI.h>
 #include <juce_core/juce_core.h>
-#include <cstddef>
 
 namespace skellcore::ui {
 
@@ -16,14 +15,15 @@ public:
         if (stableProductId.trim().isEmpty())
             return {};
         const auto id = stableProductId.trim();
-        // Hash the complete ID: filenames cannot contain '/', '..' or other
-        // path separators even when names come from manifests or user input.
-        const juce::MD5 digest(id.toRawUTF8(),
-                               static_cast<std::size_t>(id.getNumBytesAsUTF8()));
+        // Filename is a deterministic 64-bit JUCE string hash. This is
+        // identity separation, not a security hash; no cryptography module
+        // or arbitrary user-derived filesystem path is required.
+        const auto idHash = juce::String::toHexString(
+            static_cast<juce::int64>(id.hashCode64())).paddedLeft('0', 16);
         return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
             .getChildFile("SkellAudio")
             .getChildFile("Appearance")
-            .getChildFile("skin-" + digest.toHexString() + ".txt");
+            .getChildFile("skin-" + idHash + ".txt");
     }
 
     static StudioSkin load(const juce::String& stableProductId,

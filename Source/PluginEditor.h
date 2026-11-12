@@ -19,7 +19,7 @@ public:
 
 private:
   void timerCallback() override;
-  skellcore::ui::StudioLookAndFeel skin_;
+  skellcore::ui::SkellHardwareLookAndFeel skin_;
   skellcore::world::WorldLink& world_;
   SkellAudioProcessor& processor_;
   skellcore::ui::SkellSkullButton skullMark_;

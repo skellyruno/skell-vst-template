@@ -24,14 +24,16 @@ inline void drawShushingSkullMark(juce::Graphics& g, float x, float y, float siz
   g.fillPath(nose);
   for (int i = 0; i < 3; ++i)
     g.fillRoundedRectangle(17.0f + 5.0f * float(i), 34.0f, 1.4f, 5.5f, 0.7f);
-  // Index finger in front of the mouth. A dark contour separates it from jaw
-  // and makes the silence gesture readable even at 24 px.
+  // Raised index finger directly across the lips, with the supporting hand
+  // below the jaw. This silhouette stays legible at the plugin's compact size.
   g.setColour(hole);
-  g.fillRoundedRectangle(31.0f, 20.0f, 11.0f, 25.0f, 5.4f);
+  g.fillRoundedRectangle(25.2f, 18.7f, 11.2f, 26.3f, 5.2f);
+  g.fillRoundedRectangle(29.0f, 35.0f, 15.0f, 11.0f, 4.0f);
   g.setColour(bone);
-  g.fillRoundedRectangle(32.5f, 20.9f, 8.0f, 22.0f, 4.0f);
-  g.setColour(accent.withAlpha(0.85f));
-  g.fillRoundedRectangle(33.7f, 23.0f, 1.3f, 12.0f, 0.65f);
+  g.fillRoundedRectangle(27.0f, 19.6f, 7.5f, 23.0f, 3.7f);
+  g.fillRoundedRectangle(30.5f, 37.2f, 11.2f, 6.7f, 3.1f);
+  g.setColour(accent.withAlpha(0.82f));
+  g.drawLine(28.0f, 25.0f, 28.0f, 34.0f, 1.0f);
 }
 
 inline void drawHardwareKnob(juce::Graphics& g, juce::Rectangle<float> bounds,

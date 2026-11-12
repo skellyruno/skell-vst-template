@@ -35,7 +35,7 @@ jobs:
       - name: Test
         run: ctest --test-dir build-core --build-config Release --output-on-failure
       - name: CPU benchmark (non-gating measurements)
-        run: ctest --test-dir build-core --build-config Release -R SkellCoreBenchmark -V
+        run: ctest --test-dir build-core --build-config Release -R "SkellCore(Benchmark|MeterBenchmark)" -V
       - name: Verify plugin generator
         run: python tools/test_new_plugin.py
       - name: SkellWorld protocol, hub and catalog integration

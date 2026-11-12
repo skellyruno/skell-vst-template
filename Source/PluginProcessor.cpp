@@ -37,6 +37,11 @@ void SkellAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     const auto end = smoothedGain_.skip(frames);
     buffer.applyGainRamp(0, frames, initial, end);
   }
+  // One scalar for the shared UI line, with no locks, allocations or UI calls.
+  float peak = 0.f;
+  for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+    peak = juce::jmax(peak, buffer.getMagnitude(ch, 0, frames));
+  peakBridge_.publish(peak);
 }
 juce::AudioProcessorEditor* SkellAudioProcessor::createEditor() { return new SkellAudioProcessorEditor(*this); }
 void SkellAudioProcessor::getStateInformation(juce::MemoryBlock& dest) {

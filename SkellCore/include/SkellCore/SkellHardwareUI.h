@@ -63,24 +63,27 @@ inline void drawShushingSkullMark(juce::Graphics& g,float x,float y,float size,
   // A narrow upright finger in front of the lips, separate from the jaw:
   // dark edging, curved fingertip and lower hand make the gesture unmistakable.
   juce::Path handOutline;
-  handOutline.startNewSubPath(24.9f,20.7f);
-  handOutline.quadraticTo(24.8f,17.3f,27.9f,17.1f);
-  handOutline.quadraticTo(31.2f,17.3f,31.2f,20.8f);
-  handOutline.lineTo(31.2f,36.2f);
-  handOutline.quadraticTo(38.2f,35.5f,40.2f,40.0f);
-  handOutline.lineTo(43.2f,45.6f);
-  handOutline.lineTo(28.0f,45.6f);
-  handOutline.quadraticTo(24.8f,43.7f,24.8f,39.7f);
+  handOutline.startNewSubPath(24.5f,20.5f);
+  handOutline.quadraticTo(24.5f,17.4f,26.8f,17.3f);
+  handOutline.quadraticTo(29.1f,17.4f,29.1f,20.5f);
+  handOutline.lineTo(29.1f,38.3f);
+  handOutline.quadraticTo(32.3f,38.7f,33.8f,41.0f);
+  handOutline.lineTo(35.5f,44.4f);
+  handOutline.lineTo(27.2f,44.4f);
+  handOutline.quadraticTo(24.5f,42.8f,24.5f,39.8f);
   handOutline.closeSubPath();
-  g.setColour(hole.withAlpha(0.97f));
-  g.strokePath(handOutline,juce::PathStrokeType(2.75f,juce::PathStrokeType::curved,
+  // Small thumb and palm stay inside the jaw silhouette instead of forming
+  // an oversized L shape at 30px. The narrow finger remains legible at 100%.
+  g.setColour(hole.withAlpha(0.98f));
+  g.strokePath(handOutline,juce::PathStrokeType(2.1f,juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded));
-  g.setGradientFill(juce::ColourGradient(light,26.0f,18.0f,shade,39.0f,45.0f,false));
+  g.setGradientFill(juce::ColourGradient(light.darker(0.07f),26.1f,18.0f,
+                                         shade.darker(0.08f),33.8f,45.0f,false));
   g.fillPath(handOutline);
-  g.setColour(juce::Colours::white.withAlpha(0.39f));
-  g.drawLine(26.9f,20.3f,26.9f,35.3f,0.9f);
-  g.setColour(hole.withAlpha(0.46f));
-  g.drawLine(31.9f,39.9f,39.0f,40.5f,0.9f);
+  g.setColour(juce::Colours::white.withAlpha(0.42f));
+  g.drawLine(25.9f,20.8f,25.9f,34.8f,0.7f);
+  g.setColour(hole.withAlpha(0.45f));
+  g.drawLine(29.1f,40.0f,32.9f,41.3f,0.7f);
 
   // Minimal neon reflection rather than a separate underline or fake status LED.
   g.setColour(accent.withAlpha(0.60f));

@@ -65,6 +65,30 @@ public:
     }
 };
 
+// Compact native tutorial navigation shared across complex Skell plugins.
+// Deliberately independent of each plugin's LookAndFeel and icon font.
+class GuidedTourNavigationLookAndFeel final : public juce::LookAndFeel_V4 {
+public:
+    juce::Font getTextButtonFont(juce::TextButton&, int) override {
+        return juce::Font(juce::FontOptions(11.5f).withStyle("Bold"));
+    }
+    void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                              const juce::Colour& colour,
+                              bool hover, bool down) override {
+        const auto area = button.getLocalBounds().toFloat().reduced(.75f);
+        const auto background = down ? colour.darker(.13f)
+                                    : hover ? colour.brighter(.07f) : colour;
+        const bool primary = button.getButtonText() == "NEXT"
+                          || button.getButtonText() == "DONE";
+        g.setColour(primary ? background : background.withAlpha(.56f));
+        g.fillRoundedRectangle(area, 6.f);
+        const auto border = primary ? background.brighter(.18f).withAlpha(.85f)
+            : button.findColour(juce::TextButton::textColourOffId).withAlpha(.34f);
+        g.setColour(border);
+        g.drawRoundedRectangle(area, 6.f, .95f);
+    }
+};
+
 class GuidedTourOverlay final : public juce::Component {
 public:
     using Close = std::function<void(GuidedTourFinish)>;
@@ -181,22 +205,24 @@ public:
             // controls, with SKIP in the heading rather than 3 tiny buttons.
             constexpr int edge = 10;
             constexpr int gutter = 6;
-            const int buttonHeight = juce::jmin(27, juce::jmax(18, bubble.getHeight()/5));
+            const int buttonHeight = juce::jmin(24, juce::jmax(19, bubble.getHeight()/6));
             const int buttonWidth = juce::jmax(1,(bubble.getWidth()-2*edge-gutter)/2);
             const int y = bubble.getBottom()-edge-buttonHeight;
             back_.setBounds(bubble.getX()+edge, y, buttonWidth, buttonHeight);
             next_.setBounds(bubble.getRight()-edge-buttonWidth, y, buttonWidth, buttonHeight);
-            skip_.setBounds(bubble.getRight()-edge-49, bubble.getY()+6, 49, 23);
+            skip_.setBounds(bubble.getRight()-edge-45, bubble.getY()+6, 45, 22);
             return;
         }
-        const int edge = juce::jmax(3, juce::jmin(10, bubble.getWidth() / 24));
-        const int buttonHeight = juce::jmin(28, juce::jmax(18, bubble.getHeight() / 5));
+        // Compact buttons preserve the reading area and are more proportional
+        // to the 13.5pt heading. Keep hit targets at least 24px high.
+        const int edge = juce::jmax(8, juce::jmin(12, bubble.getWidth() / 24));
+        const int buttonHeight = juce::jmin(25, juce::jmax(24, bubble.getHeight() / 6));
         const int rowTop = bubble.getBottom() - edge - buttonHeight;
         const int available = juce::jmax(1, bubble.getWidth() - edge * 2);
-        const int buttonWidth = juce::jmin(74, juce::jmax(1, (available - 12) / 3));
+        const int buttonWidth = juce::jmin(62, juce::jmax(1, (available - 14) / 3));
         next_.setBounds(bubble.getRight() - edge - buttonWidth, rowTop, buttonWidth, buttonHeight);
-        skip_.setBounds(next_.getX() - 5 - buttonWidth, rowTop, buttonWidth, buttonHeight);
-        back_.setBounds(skip_.getX() - 5 - buttonWidth, rowTop, buttonWidth, buttonHeight);
+        skip_.setBounds(next_.getX() - 7 - buttonWidth, rowTop, buttonWidth, buttonHeight);
+        back_.setBounds(skip_.getX() - 7 - buttonWidth, rowTop, buttonWidth, buttonHeight);
     }
 
     void paint(juce::Graphics& g) override {
@@ -361,7 +387,7 @@ private:
     bool closing_ = false;
     // Constructed before buttons and destroyed afterwards (reverse member
     // destruction order); a local LAF gives consistent legible controls.
-    juce::LookAndFeel_V4 buttonLook_;
+    GuidedTourNavigationLookAndFeel buttonLook_;
     juce::TextButton back_, next_, skip_;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GuidedTourOverlay)
 };

@@ -22,3 +22,10 @@ This is the default workflow for **all Skelly JUCE plugins** as each plugin adop
 ## Generic runner contract
 A plugin-specific CLI renderer accepts `--output <folder>` and defaults to four scenes; `--full` opts into its exhaustive full list. It writes `manifest.json`, `contact-sheet.png`, and the original captured PNGs. Names and configurations may differ per plugin.
 The generic local runner checks subprocess exit code, exact count, sizes, contrast, nonblank images, PNG file presence, and writes a timed validation report. Prefer fresh folders or explicitly clear old screenshots between captures.
+
+
+## Locally compiling changed source (not merely replaying a binary)
+Run `python3 tools/skell_ui_rebuild.py --project /path/to/plugin --juce /path/to/JUCE-8.0.12 --skellcore /path/to/skellcore-vst-template --output /path/to/quick4`.
+The local Linux build requires the C++ toolchain, Ninja, CMake, Xvfb, JUCE and SkellCore source, and the relevant system development headers/libraries (typically FreeType, Fontconfig, ALSA, X11 and GUI dependencies). This runner invokes CMake + an actual per-plugin renderer target before taking any screenshots. **No fallback to stale binaries.** For plugins not yet wired to a renderer target, add that target before claiming local rebuild support.
+
+The reusable pinned JUCE and SkellCore sources may be bootstrapped once on a network-enabled machine; do not depend on GitHub Actions for routine screenshots. Initial builds are significantly slower than subsequent captures; screenshots of a precompiled editor have been measured at ~1.7 seconds for four scenes in the reference container, but fresh C++ builds vary by machine and changes.

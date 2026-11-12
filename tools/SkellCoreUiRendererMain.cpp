@@ -55,6 +55,40 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "Shared power toggle semantics broken\n");
         return 1;
     }
+    // The shared toggle must have two visibly distinct states and retain
+    // normal JUCE Button behavior instead of being a decorative status dot.
+    juce::Image toggleOff(juce::Image::ARGB, 168, 26, true);
+    juce::Image toggleOn(juce::Image::ARGB, 168, 26, true);
+    skellcore::ui::SkellHardwareLookAndFeel toggleLook(
+        skellcore::ui::StudioSkin::Obsidian);
+    juce::ToggleButton testToggle {"SHOW AUDIO LINE"};
+    testToggle.setSize(168, 26);
+    {
+        juce::Graphics g(toggleOff);
+        toggleLook.drawToggleButton(g, testToggle, false, false);
+    }
+    testToggle.setToggleState(true, juce::dontSendNotification);
+    {
+        juce::Graphics g(toggleOn);
+        toggleLook.drawToggleButton(g, testToggle, false, false);
+    }
+    bool toggleStatesDiffer = false;
+    for (int y = 0; y < 26 && !toggleStatesDiffer; ++y)
+        for (int x = 0; x < 168; ++x)
+            if (toggleOff.getPixelAt(x, y) != toggleOn.getPixelAt(x, y)) {
+                toggleStatesDiffer = true;
+                break;
+            }
+    if (!toggleStatesDiffer) {
+        std::fprintf(stderr, "Shared UI toggle has indistinguishable on/off states\n");
+        return 1;
+    }
+    // Tiny drawing bounds must be a safe no-op, not negative geometry.
+    testToggle.setSize(10, 9);
+    juce::Image tinyToggle(juce::Image::ARGB, 10, 9, true);
+    juce::Graphics tinyG(tinyToggle);
+    toggleLook.drawToggleButton(tinyG, testToggle, false, false);
+
     skellcore::ui::SkellAudioLine audioLine;
     audioLine.setBounds(0, 0, 180, 18);
     audioLine.pushLevel(0.7f);

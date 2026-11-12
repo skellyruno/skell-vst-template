@@ -40,10 +40,32 @@ jobs:
           if (-not (Test-Path generated-smoke/Source/PluginEditor.cpp)) {
             throw 'Generated editor source missing'
           }
+      - name: Compile-check shared UI v2 headers from the generated pin
+        shell: pwsh
+        run: |
+          @'
+          #include <SkellCore/SkellPresetBar.h>
+          #include <SkellCore/SkellMeterControls.h>
+          #include <SkellCore/SkellResponsiveLayout.h>
+          int skellSharedUiContractCompile() {
+              skellcore::ui::SkellPresetBar bar;
+              bar.setPresets(juce::StringArray{"One", "Two"}, 0);
+              skellcore::ui::SkellStereoMeter meter;
+              meter.pushLevels(0.25f, 0.5f, 1.f/24.f);
+              const auto cells = skellcore::ui::skellResponsiveCells(
+                  {0, 0, 400, 200}, 4, 110, 52, 6, 3);
+              return bar.presetCount() + static_cast<int>(cells.size());
+          }
+          '@ | Set-Content -Path generated-smoke/tools/SharedUICompile.cpp -Encoding utf8
+          @'
+          add_library(SkellSharedUiHeaderSmoke OBJECT tools/SharedUICompile.cpp)
+          target_link_libraries(SkellSharedUiHeaderSmoke PRIVATE SkellCore::UI)
+          target_compile_features(SkellSharedUiHeaderSmoke PRIVATE cxx_std_17)
+          '@ | Add-Content -Path generated-smoke/CMakeLists.txt
       - name: Configure generated VST3 using its actual pinned dependency
         run: cmake -S generated-smoke -B generated-build -A x64
       - name: Compile generated Windows VST3
-        run: cmake --build generated-build --config Release --target SkellGeneratedSmoke_VST3 --parallel 2
+        run: cmake --build generated-build --config Release --target SkellGeneratedSmoke_VST3 SkellSharedUiHeaderSmoke --parallel 2
       - name: Verify generated VST3 bundle exists
         shell: pwsh
         run: |

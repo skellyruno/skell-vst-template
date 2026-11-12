@@ -124,6 +124,25 @@ resynthesizes audio, records input or changes host latency.
 - **Colours:** plugin skin and accents may differ; master skull geometry,
   control proportions, icons and interaction affordances stay familiar.
 
+## Product settings, themes and generator safety
+
+Shared palettes are **provisional** until the official SKELL theme and control appearances are chosen.
+The new `<SkellCore/SkellAppearanceStore.h>` provides product-scoped preference storage:
+
+    skellcore::ui::SkellAppearanceStore::load("skell.delay")
+    skellcore::ui::SkellAppearanceStore::save(
+        "skell.delay", skellcore::ui::StudioSkin::Obsidian);
+
+Use an immutable product ID. The implementation hashes the ID before using
+it as a filename, avoiding path traversal from plugin names. Existing global
+`StudioSkinStore` behavior is preserved for older adopting plugins.
+
+New plugin generation replaces the template's stable `skellcore.quickstart`
+ID with the new product's own ID. A separate Windows CI job now generates a
+new plugin using the generator's immutable **default revision**, configures
+its JUCE dependency and compiles a VST3 bundle. This catches mismatches that
+text-only generator tests do not detect.
+
 ## Migration checklist
 
 1. Pin a known SkellCore revision; do not mix headers from unrelated commits.

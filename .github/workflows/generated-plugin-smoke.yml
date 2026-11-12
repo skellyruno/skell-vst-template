@@ -1,6 +1,15 @@
 name: SkellCore / Generated Plugin VST3 Smoke
 
 on:
+  push:
+    branches: ['feature/**']
+    paths:
+      - 'Source/**'
+      - 'SkellCore/include/SkellCore/**'
+      - 'SkellCore/CMakeLists.txt'
+      - 'tools/new_plugin.py'
+      - 'CMakeLists.txt'
+      - '.github/workflows/generated-plugin-smoke.yml'
   pull_request:
     paths:
       - 'Source/**'

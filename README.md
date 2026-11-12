@@ -87,7 +87,7 @@ See [SkellCore/README.md](SkellCore/README.md) and [GitHub migration tracker](ht
 
 ## Studio UI: shared 3D knobs + four skins (opt-in)
 
-The quickstart editor demonstrates the new `<SkellCore/StudioUI.h>` components: a subtle raised-metal 3D rotary LookAndFeel, double-click-to-reset and editable-value knobs, and four consistent plugin skins (**Ivory, Obsidian, Amethyst, Crimson**). Skin choice persists as a *user appearance preference* across SKELL plugins adopting this module; it never changes audio processing or project parameters. The existing SkellCore UI API remains available.
+The quickstart editor demonstrates the new `<SkellCore/StudioUI.h>` components: a subtle raised-metal 3D rotary LookAndFeel, double-click-to-reset and editable-value knobs, and four consistent plugin skins (**Ivory, Obsidian, Amethyst, Crimson**). Existing adopters of `StudioSkinStore` retain their legacy global preference; the updated Quickstart and newly generated plugins use **product-scoped** preferences via `SkellAppearanceStore`, so one plugin's theme does not change another's. These are UI-only preferences and never modify audio processing or project parameters. The existing SkellCore UI API remains available.
 
 See [Studio UI integration and test matrix](docs/STUDIO_UI.md). The real editor screenshot harness covers 10 skin/size scenes. Other plugins are **not yet automatically converted**: adopt SkellCore on an immutable revision and validate their real parameter controls and plugin hosts independently.
 
@@ -100,3 +100,9 @@ The new-plugin generator pins the tested SkellCore revision including `<SkellCor
 ## Guided Tours for complex SKELL plugins
 
 SkellCore now includes an **opt-in first-run tutorial overlay**, based on OmniChoir FX's real tour implementation: spotlight one control, Back/Next/Skip, remembered completion and replay from Help. It supports nested controls and tab switching without changing plugin parameters or DSP. Simple plugins remain tutorial-free. Read [the Guided Tours adoption guide](docs/GUIDED_TOURS.md) for Skell Preset, Skell Afar and Skell Silence integration.
+
+## Unified identity and controls — development candidate
+
+The ongoing [SkellCore unified-identity PR](https://github.com/skellyruno/skellcore-vst-template/pull/26) introduces a neutral master skull with plugin-specific elements, a shared hardware knob renderer, settings gear/panel, working enable/bypass button and a CPU-conscious audio-level line. Existing Skell Key artwork and shipped plugins are not automatically changed. Appearance designs remain provisional.
+
+Newly generated plugins use per-product skin storage in `<SkellCore/SkellAppearanceStore.h>`. Windows CI now also builds a fresh **generated VST3 against the generator's own pinned revision** to detect template/dependency mismatches. Read [identity and controls integration](docs/SKELL_IDENTITY_CONTROLS.md).

@@ -1,8 +1,9 @@
 #include "PluginEditor.h"
+#include <SkellCore/SkellAppearanceStore.h>
 
 SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
     : AudioProcessorEditor(&p),
-      skin_(skellcore::ui::StudioSkinStore::load()),
+      skin_(skellcore::ui::SkellAppearanceStore::load("skellcore.quickstart")),
       world_(p.worldLink),
       processor_(p),
       gainAttachment(p.parameters, "gain", gain),
@@ -91,7 +92,7 @@ void SkellAudioProcessorEditor::setStudioSkin(skellcore::ui::StudioSkin selectio
   skinSelector_.setSelectedId(static_cast<int>(selection) + 1,
                               juce::dontSendNotification);
   if (persist)
-    (void) skellcore::ui::StudioSkinStore::save(selection);
+    (void) skellcore::ui::SkellAppearanceStore::save("skellcore.quickstart", selection);
   const auto p = skin_.palette();
   skullMark_.setBrandColours({p.foreground, p.background, p.accent, p.secondary});
   settingsButton_.setColours(p.accent, p.surface);

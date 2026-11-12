@@ -40,6 +40,39 @@ public:
     }
     StudioSkin skin() const noexcept { return skin_; }
     StudioPalette palette() const noexcept { return palette_; }
+    // Normal JUCE ToggleButtons match the same compact status-dot language
+    // as SKELL effect slots and settings; the dedicated power glyph keeps its
+    // own painter. The plugin controls toggle semantics via APVTS as before.
+    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+                          bool hover, bool pressed) override {
+        const auto bounds = button.getLocalBounds().toFloat();
+        if (bounds.getHeight() < 8.f || bounds.getWidth() < 20.f) return;
+        const auto diameter = juce::jmin(15.f, bounds.getHeight() - 5.f);
+        const auto x = bounds.getX() + 2.f;
+        const auto y = bounds.getCentreY() - diameter * .5f;
+        const auto lit = button.getToggleState();
+        const auto activeColour = button.isEnabled()
+            ? (lit ? palette_.accent : palette_.secondary)
+            : palette_.secondary.withAlpha(.35f);
+        g.setColour(palette_.background);
+        g.fillEllipse(x-1.f, y-1.f, diameter+2.f, diameter+2.f);
+        g.setColour(palette_.border);
+        g.drawEllipse(x-1.f, y-1.f, diameter+2.f, diameter+2.f, 1.f);
+        g.setColour(activeColour.withAlpha(pressed ? .7f : 1.f));
+        g.fillEllipse(x+2.f, y+2.f, diameter-4.f, diameter-4.f);
+        if (hover && button.isEnabled()) {
+            g.setColour(activeColour.withAlpha(.45f));
+            g.drawEllipse(x-2.f, y-2.f, diameter+4.f, diameter+4.f, 1.f);
+        }
+        const auto textStart = juce::roundToInt(x+diameter+8.f);
+        const auto textWidth = juce::jmax(0, button.getWidth()-textStart-2);
+        g.setColour(button.isEnabled() ? palette_.foreground : palette_.secondary);
+        g.setFont(juce::Font(juce::FontOptions(
+            juce::jmin(12.f, bounds.getHeight()*.43f))));
+        g.drawFittedText(button.getButtonText(), textStart, 0, textWidth,
+                         button.getHeight(), juce::Justification::centredLeft, 1);
+    }
+
     void drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h,
                           float position, float begin, float end,
                           juce::Slider& slider) override {

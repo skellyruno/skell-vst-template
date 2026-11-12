@@ -11,46 +11,83 @@ namespace skellcore::ui {
 // The shushing overlay changes the expression, never adds a key to the skull.
 inline void drawShushingSkullMark(juce::Graphics& g,float x,float y,float size,
                                   juce::Colour bone,juce::Colour hole,juce::Colour accent) {
-  if (size<=0.0f) return;
+  if(size<=0.0f)return;
   juce::Graphics::ScopedSaveState saved(g);
   g.addTransform(juce::AffineTransform::scale(size/48.0f).translated(x,y));
   const auto light=bone.brighter(0.13f);
-  // Sculpted cranium, cheekbones and lower jaw with distinct dark cavities.
-  g.setColour(juce::Colours::black.withAlpha(0.45f));
-  g.fillEllipse(5.1f,5.0f,38.5f,33.0f);
-  g.setGradientFill(juce::ColourGradient(light,11.0f,3.0f,bone.darker(0.30f),38.0f,35.0f,false));
-  g.fillEllipse(5.0f,2.5f,38.0f,32.8f);
-  g.fillRoundedRectangle(12.0f,26.8f,24.0f,15.0f,5.0f);
-  g.setColour(juce::Colours::white.withAlpha(0.16f));
-  g.drawEllipse(7.5f,5.0f,32.0f,25.5f,0.75f);
-  g.setColour(hole);
-  g.fillEllipse(11.6f,16.6f,11.3f,10.4f);
-  g.fillEllipse(27.0f,16.6f,11.3f,10.4f);
-  // Lower, rounded orbital rims read like a deliberate facial expression.
-  g.setColour(bone.darker(0.10f));
-  g.drawLine(10.6f,16.1f,22.7f,14.5f,1.4f);
-  g.drawLine(27.1f,14.5f,39.0f,16.1f,1.4f);
-  g.setColour(hole);
-  juce::Path nose;
-  nose.addTriangle(24.7f,25.0f,21.7f,30.4f,27.2f,30.4f);
-  g.fillPath(nose);
-  g.fillRoundedRectangle(16.0f,34.6f,17.0f,1.4f,0.7f);
-  for(int i=0;i<3;++i)
-    g.fillRoundedRectangle(17.4f+float(i)*5.0f,35.3f,1.2f,5.1f,0.6f);
+  const auto shade=bone.darker(0.32f);
 
-  // Index finger in front of the lips: outline first prevents merging
-  // into the skull at 30–48px sizes. A hand rests naturally under the chin.
-  g.setColour(hole.withAlpha(0.94f));
-  g.fillRoundedRectangle(25.1f,17.7f,10.6f,27.7f,5.0f);
-  g.fillRoundedRectangle(28.0f,36.8f,16.2f,10.7f,4.5f);
-  g.setGradientFill(juce::ColourGradient(light,27.0f,18.0f,
-                                         bone.darker(0.19f),36.0f,44.0f,false));
-  g.fillRoundedRectangle(27.0f,19.0f,6.75f,24.9f,3.35f);
-  g.fillRoundedRectangle(30.5f,38.4f,11.6f,6.0f,3.0f);
-  g.setColour(juce::Colours::white.withAlpha(0.30f));
-  g.drawLine(28.6f,21.8f,28.6f,35.3f,0.85f);
-  g.setColour(accent.withAlpha(0.90f));
-  g.drawLine(24.0f,46.0f,42.0f,46.0f,1.25f);
+  // A recognisable bone silhouette with separate cheekbones and a real jaw.
+  // Drawn at 48x48 logical pixels so it remains legible in compact VST windows.
+  juce::Path skull;
+  skull.startNewSubPath(24.0f,3.0f);
+  skull.cubicTo(10.0f,2.3f,5.8f,10.6f,7.0f,22.0f);
+  skull.cubicTo(7.3f,27.2f,11.0f,29.0f,13.7f,31.6f);
+  skull.lineTo(13.5f,38.0f);
+  skull.quadraticTo(13.7f,43.3f,19.1f,43.3f);
+  skull.lineTo(29.9f,43.3f);
+  skull.quadraticTo(35.3f,43.3f,35.4f,38.0f);
+  skull.lineTo(35.2f,31.6f);
+  skull.cubicTo(38.7f,28.5f,41.4f,25.4f,41.5f,19.9f);
+  skull.cubicTo(42.0f,10.1f,35.7f,3.0f,24.0f,3.0f);
+  skull.closeSubPath();
+  g.setColour(juce::Colours::black.withAlpha(0.44f));
+  g.fillPath(skull,juce::AffineTransform::translation(0.65f,1.2f));
+  g.setGradientFill(juce::ColourGradient(light,13.0f,5.0f,shade,36.0f,40.0f,false));
+  g.fillPath(skull);
+  g.setColour(juce::Colours::white.withAlpha(0.19f));
+  g.strokePath(skull,juce::PathStrokeType(0.85f));
+
+  // Distinct dark orbital cavities and slightly angled brows give expression.
+  g.setColour(bone.darker(0.20f));
+  g.fillEllipse(11.3f,15.5f,12.3f,12.1f);
+  g.fillEllipse(26.1f,15.5f,12.3f,12.1f);
+  g.setColour(hole);
+  g.fillEllipse(12.1f,17.0f,10.6f,10.0f);
+  g.fillEllipse(27.0f,17.0f,10.6f,10.0f);
+  g.setColour(bone.brighter(0.05f));
+  g.drawLine(10.4f,15.3f,22.7f,14.6f,1.2f);
+  g.drawLine(26.5f,14.6f,39.0f,15.3f,1.2f);
+
+  // Nose and individual teeth show through the shushing finger.
+  juce::Path nose;
+  nose.startNewSubPath(24.5f,26.9f);
+  nose.lineTo(21.6f,32.2f);nose.lineTo(27.6f,32.2f);
+  nose.closeSubPath();
+  g.setColour(hole);
+  g.fillPath(nose);
+  g.fillRoundedRectangle(16.8f,36.2f,16.2f,1.5f,0.6f);
+  for(int i=0;i<4;++i)
+    g.fillRoundedRectangle(17.7f+float(i)*3.5f,37.0f,0.95f,4.0f,0.45f);
+
+  // A narrow upright finger in front of the lips, separate from the jaw:
+  // dark edging, curved fingertip and lower hand make the gesture unmistakable.
+  juce::Path handOutline;
+  handOutline.startNewSubPath(24.5f,20.5f);
+  handOutline.quadraticTo(24.5f,17.4f,26.8f,17.3f);
+  handOutline.quadraticTo(29.1f,17.4f,29.1f,20.5f);
+  handOutline.lineTo(29.1f,38.3f);
+  handOutline.quadraticTo(32.3f,38.7f,33.8f,41.0f);
+  handOutline.lineTo(35.5f,44.4f);
+  handOutline.lineTo(27.2f,44.4f);
+  handOutline.quadraticTo(24.5f,42.8f,24.5f,39.8f);
+  handOutline.closeSubPath();
+  // Small thumb and palm stay inside the jaw silhouette instead of forming
+  // an oversized L shape at 30px. The narrow finger remains legible at 100%.
+  g.setColour(hole.withAlpha(0.98f));
+  g.strokePath(handOutline,juce::PathStrokeType(2.1f,juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
+  g.setGradientFill(juce::ColourGradient(light.darker(0.07f),26.1f,18.0f,
+                                         shade.darker(0.08f),33.8f,45.0f,false));
+  g.fillPath(handOutline);
+  g.setColour(juce::Colours::white.withAlpha(0.42f));
+  g.drawLine(25.9f,20.8f,25.9f,34.8f,0.7f);
+  g.setColour(hole.withAlpha(0.45f));
+  g.drawLine(29.1f,40.0f,32.9f,41.3f,0.7f);
+
+  // Minimal neon reflection rather than a separate underline or fake status LED.
+  g.setColour(accent.withAlpha(0.60f));
+  g.drawLine(11.9f,31.0f,13.0f,32.1f,1.0f);
 }
 
 // Shared control: recessed mount, heavy dark metal bezel, convex anodized
@@ -161,10 +198,7 @@ inline void drawHardwareIconButton(juce::Graphics& g,juce::Rectangle<float> boun
     g.setColour(glyphColour);
     g.strokePath(ring,juce::PathStrokeType(2.35f,juce::PathStrokeType::curved,juce::PathStrokeType::rounded));
     g.drawLine(cx,cy-11.6f,cx,cy+0.2f,2.6f);
-    if(active) {
-      g.setColour(accent.withAlpha(0.52f));
-      g.fillEllipse(cx+8.5f,cy-14.0f,3.7f,3.7f);
-    }
+    // No separate indicator dot: the green power glyph already indicates ON.
   } else {
     juce::Path gear;
     for(int i=0;i<32;++i) {

@@ -46,7 +46,7 @@ public:
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                           bool hover, bool pressed) override {
         const auto bounds = button.getLocalBounds().toFloat();
-        if (bounds.getHeight() < 8.f || bounds.getWidth() < 20.f) return;
+        if (bounds.getHeight() < 12.f || bounds.getWidth() < 20.f) return;
         const auto diameter = juce::jmin(15.f, bounds.getHeight() - 5.f);
         const auto x = bounds.getX() + 2.f;
         const auto y = bounds.getCentreY() - diameter * .5f;

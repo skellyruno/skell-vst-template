@@ -39,6 +39,21 @@ int main(int argc, char** argv) {
     skellcore::ui::SkellAudioLine audioLine;
     audioLine.setBounds(0, 0, 180, 18);
     audioLine.pushLevel(0.7f);
+    for (int i = 0; i < 65; ++i) audioLine.pushLevel(0.f);
+    juce::Image settled(juce::Image::ARGB, 180, 18, true);
+    juce::Image pristine(juce::Image::ARGB, 180, 18, true);
+    juce::Graphics settledGraphics(settled);
+    audioLine.paint(settledGraphics);
+    skellcore::ui::SkellAudioLine quietLine;
+    quietLine.setBounds(0, 0, 180, 18);
+    juce::Graphics pristineGraphics(pristine);
+    quietLine.paint(pristineGraphics);
+    for (int y = 0; y < 18; ++y)
+        for (int x = 0; x < 180; ++x)
+            if (settled.getPixelAt(x, y) != pristine.getPixelAt(x, y)) {
+                std::fprintf(stderr, "Audio line did not return to flat idle state\\n");
+                return 1;
+            }
     // Non-finite knob input must render exactly like a safe zero value.
     juce::Image validDial(juce::Image::ARGB, 96, 96, true);
     juce::Image invalidDial(juce::Image::ARGB, 96, 96, true);

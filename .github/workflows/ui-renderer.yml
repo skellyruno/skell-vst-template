@@ -4,21 +4,19 @@ on:
   push:
     branches: [main]
     paths:
-      - 'SkellCore/include/SkellCore/HeadlessUIRenderer.h'
-      - 'SkellCore/include/SkellCore/StudioUI.h'
-      - 'SkellCore/include/SkellCore/GuidedTour.h'
+      - 'SkellCore/include/SkellCore/**'
       - 'SkellCore/CMakeLists.txt'
       - 'tools/SkellCoreUiRendererMain.cpp'
+      - 'tools/new_plugin.py'
       - 'Source/**'
       - 'CMakeLists.txt'
       - '.github/workflows/ui-renderer.yml'
   pull_request:
     paths:
-      - 'SkellCore/include/SkellCore/HeadlessUIRenderer.h'
-      - 'SkellCore/include/SkellCore/StudioUI.h'
-      - 'SkellCore/include/SkellCore/GuidedTour.h'
+      - 'SkellCore/include/SkellCore/**'
       - 'SkellCore/CMakeLists.txt'
       - 'tools/SkellCoreUiRendererMain.cpp'
+      - 'tools/new_plugin.py'
       - 'Source/**'
       - 'CMakeLists.txt'
       - '.github/workflows/ui-renderer.yml'

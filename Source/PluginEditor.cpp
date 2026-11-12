@@ -59,6 +59,7 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   worldButton_.onClick = [this] {
     if (world_.requested()) world_.leave();
     else world_.join(); // explicit only: never join at plugin load
+    worldPollTick_ = 5; // force a status refresh on the next UI tick
     timerCallback();
   };
   worldStatus_.setJustificationType(juce::Justification::centredLeft);
@@ -142,15 +143,19 @@ void SkellAudioProcessorEditor::resized() {
 }
 
 void SkellAudioProcessorEditor::timerCallback() {
+  // Meter UI updates at ~24 Hz; World presence labels need just ~4 Hz.
   audioLine_.pushLevel(processor_.takeOutputPeak());
+  if (++worldPollTick_ < 6) return;
+  worldPollTick_ = 0;
   const bool joined = world_.requested();
-  worldButton_.setButtonText(joined ? "LEAVE WORLD" : "JOIN WORLD");
+  const juce::String buttonText = joined ? "LEAVE WORLD" : "JOIN WORLD";
+  if (worldButton_.getButtonText() != buttonText)
+    worldButton_.setButtonText(buttonText);
   // Presence needs the actual Hub. The separate hub-free tuning mapping does
   // not imply any SkellWorld peers or a running presence broker.
-  if (world_.hubOnline())
-    worldStatus_.setText("WORLD ONLINE  |  " + juce::String(world_.peerCount()) + " peers",
-                         juce::dontSendNotification);
-  else
-    worldStatus_.setText(joined ? "HUB NOT RUNNING" : "OFFLINE",
-                         juce::dontSendNotification);
+  const juce::String status = world_.hubOnline()
+      ? "WORLD ONLINE  |  " + juce::String(world_.peerCount()) + " peers"
+      : (joined ? "HUB NOT RUNNING" : "OFFLINE");
+  if (worldStatus_.getText() != status)
+    worldStatus_.setText(status, juce::dontSendNotification);
 }

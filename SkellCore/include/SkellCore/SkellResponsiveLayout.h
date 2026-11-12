@@ -3,6 +3,7 @@
 // owning controls or forcing one plugin layout onto another.
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <algorithm>
+#include <cstdint>
 #include <vector>
 
 namespace skellcore::ui {
@@ -33,11 +34,13 @@ inline std::vector<juce::Rectangle<int>> skellResponsiveCells(
         || area.getHeight() <= 0) return {};
 
     const int w = area.getWidth(), h = area.getHeight();
-    const int gap = juce::jmax(0, preferredGap);
+    const int gap = juce::jlimit(0, 512, preferredGap);
     const int minimum = juce::jmax(1, minCellWidth);
-    const int columns = juce::jlimit(1, juce::jmin({count, juce::jmax(1,maxColumns), w}),
-             (w + gap) / (minimum + gap) > 0
-                 ? (w + gap) / (minimum + gap) : 1);
+    const int desiredColumns = static_cast<int>(
+        (static_cast<std::int64_t>(w) + gap)
+        / (static_cast<std::int64_t>(minimum) + gap));
+    const int columns = juce::jlimit(1, std::min({count, juce::jmax(1,maxColumns), w}),
+                                    juce::jmax(1, desiredColumns));
     const int rows = (count + columns - 1) / columns;
     if (rows > h) return {};
 

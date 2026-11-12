@@ -66,8 +66,12 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
   worldStatus_.setFont(juce::Font(juce::FontOptions(11.0f)));
   addAndMakeVisible(worldButton_);
   addAndMakeVisible(worldStatus_);
-  startTimerHz(24); // UI visual and status only; no work in processBlock
   setSize(480, 330);
+  // Make OFFLINE/connection state visible on the very first rendered frame,
+  // while keeping subsequent World polls at ~4 Hz.
+  worldPollTick_ = 5;
+  timerCallback();
+  startTimerHz(24); // UI visual and status only; no work in processBlock
 }
 
 SkellAudioProcessorEditor::~SkellAudioProcessorEditor() {

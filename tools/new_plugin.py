@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REV = "46a7e43b2bfc42dc680a22808831967bc8616194"
+DEFAULT_REV = "aa6369b0ccf8c903387dcd8cb6af256286fdd292"
 DEFAULT_REPO = "https://github.com/skellyruno/skellcore-vst-template.git"
 
 def make_project(name: str, destination: Path, code: str,

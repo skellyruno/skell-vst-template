@@ -1,6 +1,9 @@
 #include <SkellCore/LevelBridge.h>
 #include <algorithm>
 #include <atomic>
+#if defined(NDEBUG)
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -43,6 +46,6 @@ int main() {
     writer.join();
     const float tail = bridge.take();
     assert(std::isfinite(tail) && tail >= 0.0f && tail <= 1.0f);
-    assert(count.load(std::memory_order_relaxed) >= 0);
+    (void)count; // diagnostic iteration counter; not timing-dependent
     return 0;
 }

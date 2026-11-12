@@ -32,6 +32,8 @@ private:
   juce::Label worldStatus_;
   juce::Slider gain;
   juce::Label title;
+  skellcore::ui::SkellPowerButton powerButton_;
   juce::AudioProcessorValueTreeState::SliderAttachment gainAttachment;
+  juce::AudioProcessorValueTreeState::ButtonAttachment powerAttachment_;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SkellAudioProcessorEditor)
 };

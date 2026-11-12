@@ -19,6 +19,7 @@ public:
 
 private:
   void timerCallback() override;
+  unsigned int worldPollTick_ = 0; // Refresh World status at ~4 Hz, not 24 Hz
   skellcore::ui::SkellHardwareLookAndFeel skin_;
   skellcore::world::WorldLink& world_;
   SkellAudioProcessor& processor_;

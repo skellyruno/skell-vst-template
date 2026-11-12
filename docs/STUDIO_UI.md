@@ -9,11 +9,27 @@ This is a **UI-only** SkellCore addition. It implements design-research items **
 - `skellcore::ui::StudioSkin`: Ivory (default), Obsidian, Amethyst, Crimson.
 - `StudioLookAndFeel`: consistent restrained raised-metal dials, readable value boxes, buttons, menus, edit fields and accent rings.
 - `configureStudioKnob(slider, resetValue)`: rotary drag, double-click reset, typed values, mouse-wheel adjustment and 260-pixel drag sensitivity; leaves host parameter ranges and attachment in place.
-- `StudioSkinStore::load/save`: shared per-user selection in `SkellAudio/studio-skin-v1.txt` under the OS application-data directory.
+- `StudioSkinStore::load/save`: legacy shared per-user selection (still supported for existing plugins).
+- `SkellAppearanceStore::load/save(stableProductId, ...)`: recommended per-product appearance in `SkellAudio/Appearance/`, with hashed file names for path safety.
 - `populateStudioSkinSelector(comboBox)`: four stable selector IDs, 1 through 4.
 - `studioPalette(skin)`: a single palette shared by custom graphics, iconography and standard JUCE controls.
 
 Ivory and Obsidian use subtle emerald accents; Amethyst has a muted violet accent, and Crimson a muted warm red. Glow is intentionally restrained and there are no image textures or frame-by-frame animation dependencies.
+
+## Product-scoped appearance (recommended for new plugins)
+
+Include `<SkellCore/SkellAppearanceStore.h>` in the editor. Use a fixed ID that never changes when the plugin display name changes:
+
+```cpp
+constexpr auto productId = "skell.delay";
+skellcore::ui::SkellHardwareLookAndFeel look {
+    skellcore::ui::SkellAppearanceStore::load(productId) };
+// Only from a user-initiated UI action on the message thread:
+(void)skellcore::ui::SkellAppearanceStore::save(productId,
+                                                 skellcore::ui::StudioSkin::Obsidian);
+```
+
+A new product now has independent appearance preferences. Existing plugins can continue using the legacy global file, and no saved audio parameters or host state are modified. The four palettes here are provisional until the SKELL design defaults are approved.
 
 ## Integrate into existing plugin editors
 
@@ -52,7 +68,7 @@ setLookAndFeel(nullptr);
 
 Use your existing APVTS `SliderAttachment`; **do not** create separate UI-only parameters or override `onValueChange` for host automation. `resetValue` is the actual default for that knob, not a hardcoded universal default. SkellCore intentionally does not set a plugin's parameter range, identity, or preset state.
 
-A single global *default appearance* is loaded by each newly opened editor that uses this module. Existing open windows and older plugins that have not adopted the module do not magically reskin. Skin selection is intentionally **not** added to each DAW state chunk, so changing appearance does not change the sound or alter saved sessions. If a plugin explicitly requires project-specific appearance, implement its own separate persistence after deciding that behavior.
+The legacy `StudioSkinStore` uses a shared global default, while the newer `SkellAppearanceStore` keeps each plugin\'s appearance independent. Existing open windows and older plugins that have not adopted the module do not magically reskin. Skin selection is intentionally **not** added to each DAW state chunk, so changing appearance does not change the sound or alter saved sessions. If a plugin explicitly requires project-specific appearance, implement its own separate persistence after deciding that behavior.
 
 Use `studioPalette` in custom vector components. For actual clickable knobs, stay with JUCE `Slider` so host automation and text entry still work. Don't paint only a dummy knob graphic on top of an unresponsive control.
 
@@ -66,7 +82,7 @@ cmake --build build --config Release --target SkellCoreUISmokeRenderer
 # Run built renderer with an output directory, using Xvfb on Linux.
 ```
 
-The matrix contains **ten** scene captures: all four skins at 390×250 and 480×330, plus Ivory and Obsidian at 840×560. It rejects blank screenshots, clipped visible children and identical skin images. Validate more granular interactions manually or with component-level host tests, including double-click reset, keyboard entry, wheel adjustments and host automation on Windows/FL Studio before releasing any migrated plugin.
+The matrix contains **thirteen** scene captures (including Guided Tour tests): all four skins at 390×250 and 480×330, plus Ivory and Obsidian at 840×560. It rejects blank screenshots, clipped visible children and identical skin images. Validate more granular interactions manually or with component-level host tests, including double-click reset, keyboard entry, wheel adjustments and host automation on Windows/FL Studio before releasing any migrated plugin.
 
 The plugin's AUDIO callback must never call UI painting, disk settings storage, `setSkin`, or `configureStudioKnob`. Palette loading/saving is user-UI-thread I/O; there is no audio-thread allocation or runtime DSP change.
 

@@ -183,6 +183,35 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "Tour targets not found in real JUCE editor\n");
         return 1;
     }
+    // Verify the real product settings gear toggles its own panel, and that
+    // the World label is available before the editor's first timer tick.
+    skellcore::ui::SkellSettingsButton* realGear = nullptr;
+    skellcore::ui::SkellSettingsSurface* realSettings = nullptr;
+    bool initialOffline = false;
+    for (int i = 0; i < editor.getNumChildComponents(); ++i) {
+        auto* child = editor.getChildComponent(i);
+        if (auto* gear = dynamic_cast<skellcore::ui::SkellSettingsButton*>(child))
+            realGear = gear;
+        if (auto* panel = dynamic_cast<skellcore::ui::SkellSettingsSurface*>(child))
+            realSettings = panel;
+        if (auto* label = dynamic_cast<juce::Label*>(child))
+            if (label->getText() == "OFFLINE") initialOffline = true;
+    }
+    if (!realGear || !realSettings || !realGear->onClick
+        || realSettings->isVisible() || !initialOffline) {
+        std::fprintf(stderr, "Settings or first-frame World status is broken\\n");
+        return 1;
+    }
+    realGear->onClick();
+    if (!realSettings->isVisible()) {
+        std::fprintf(stderr, "Settings gear did not open plugin settings\\n");
+        return 1;
+    }
+    realGear->onClick();
+    if (realSettings->isVisible()) {
+        std::fprintf(stderr, "Settings gear did not close plugin settings\\n");
+        return 1;
+    }
     skellcore::ui::GuidedTourController testTour(editor, "skellcore-ci-render-only", 1);
     std::vector<skellcore::ui::GuidedTourStep> editorSteps;
     editorSteps.emplace_back(realKnob, "YOUR GAIN", "Drag the metal knob to adjust the audio gain.");

@@ -1,0 +1,39 @@
+name: SkellCore / Generated Plugin VST3 Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'Source/**'
+      - 'SkellCore/include/SkellCore/**'
+      - 'SkellCore/CMakeLists.txt'
+      - 'tools/new_plugin.py'
+      - 'tools/SkellCoreUiRendererMain.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/generated-plugin-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  generated-vst3:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a plugin with the default pinned SkellCore revision
+        shell: pwsh
+        run: |
+          python tools/new_plugin.py "Skell Generated Smoke" generated-smoke --code Sg93
+          if ($LASTEXITCODE -ne 0) { throw 'Plugin generation failed' }
+          if (-not (Test-Path generated-smoke/Source/PluginEditor.cpp)) {
+            throw 'Generated editor source missing'
+          }
+      - name: Configure generated VST3 using its actual pinned dependency
+        run: cmake -S generated-smoke -B generated-build -A x64
+      - name: Compile generated Windows VST3
+        run: cmake --build generated-build --config Release --target SkellGeneratedSmoke_VST3 --parallel 2
+      - name: Verify generated VST3 bundle exists
+        shell: pwsh
+        run: |
+          $bundles = @(Get-ChildItem generated-build -Recurse -Directory -Filter '*.vst3')
+          if ($bundles.Count -eq 0) {
+            throw 'Newly generated plugin did not produce a VST3 bundle'
+          }

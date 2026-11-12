@@ -39,6 +39,24 @@ int main(int argc, char** argv) {
     skellcore::ui::SkellAudioLine audioLine;
     audioLine.setBounds(0, 0, 180, 18);
     audioLine.pushLevel(0.7f);
+    // Non-finite knob input must render exactly like a safe zero value.
+    juce::Image validDial(juce::Image::ARGB, 96, 96, true);
+    juce::Image invalidDial(juce::Image::ARGB, 96, 96, true);
+    const auto drawDial = [](juce::Image& image, float position) {
+        juce::Graphics g(image);
+        skellcore::ui::drawHardwareKnob(g, {16.f, 16.f, 64.f, 64.f},
+            position, -2.5f, 2.5f,
+            juce::Colours::green, juce::Colours::grey,
+            juce::Colours::darkgrey, juce::Colours::white);
+    };
+    drawDial(validDial, 0.f);
+    drawDial(invalidDial, std::numeric_limits<float>::quiet_NaN());
+    for (int y = 0; y < 96; ++y)
+        for (int x = 0; x < 96; ++x)
+            if (validDial.getPixelAt(x, y) != invalidDial.getPixelAt(x, y)) {
+                std::fprintf(stderr, "Invalid hardware knob position changed paint\\n");
+                return 1;
+            }
     skellcore::ui::SkellSettingsSurface settings("TEST PLUGIN SETTINGS");
     settings.setSize(220, 120);
     if (settings.contentBounds().isEmpty()) {

@@ -70,6 +70,13 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "Preset bar navigation callback failed\n");
         return 1;
     }
+    // Exercise the real JUCE ComboBox selection notification path, not just
+    // direct API calls to the component.
+    presets.selector().setSelectedId(1, juce::sendNotificationSync);
+    if (presets.selectedIndex() != 0 || callbackCount != 4 || lastPreset != 0) {
+        std::fprintf(stderr, "Preset ComboBox selection callback failed\n");
+        return 1;
+    }
     presets.setModified(true);
     if (!presets.isModified()) {
         std::fprintf(stderr, "Preset dirty state failed\n");
@@ -144,6 +151,16 @@ int main(int argc, char** argv) {
         juce::Image horizontal(juce::Image::ARGB, 220, 36, true);
         juce::Graphics g(horizontal);
         stereo.paint(g);
+        // Meter must render a visible trace, not merely compile.
+        int visiblePixels = 0;
+        for (int y = 0; y < horizontal.getHeight(); ++y)
+            for (int x = 0; x < horizontal.getWidth(); ++x)
+                if (horizontal.getPixelAt(x, y).getAlpha() != 0)
+                    ++visiblePixels;
+        if (visiblePixels < 100) {
+            std::fprintf(stderr, "Stereo meter rendered an empty image\n");
+            return 1;
+        }
     }
     stereo.setVertical(true);
     stereo.setBounds(0, 0, 36, 220);

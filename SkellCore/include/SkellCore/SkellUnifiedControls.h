@@ -5,6 +5,7 @@
 #include <SkellCore/SkellIdentity.h>
 #include <SkellCore/SkellHardwareUI.h>
 #include <SkellCore/StudioUI.h>
+#include <SkellCore/LevelBridge.h>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -174,21 +175,6 @@ private:
     juce::String title_;
     juce::Colour background_ { 0xff141916 }, border_ { 0xff344236 };
     juce::Colour text_ { 0xfff1f4ef }, accent_ { 0xff90ff44 };
-};
-
-// Lock-free processor-to-editor peak handoff. Processor may publish only an
-// already-computed scalar; no UI or file operations occur in the audio callback.
-class SkellLevelBridge {
-public:
-    void publish(float peak) noexcept {
-        if (!std::isfinite(peak) || peak < 0.f) peak = 0.f;
-        latest_.store(peak > 1.f ? 1.f : peak, std::memory_order_relaxed);
-    }
-    float take() noexcept {
-        return latest_.exchange(0.f, std::memory_order_relaxed);
-    }
-private:
-    std::atomic<float> latest_ { 0.f };
 };
 
 // Shared low-cost audio visual line. Call pushLevel() on the UI thread at

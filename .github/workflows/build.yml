@@ -6,6 +6,13 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 on:
+  push:
+    branches: [main, 'feature/**']
+    paths:
+      - 'SkellCore/**'
+      - 'CMakeLists.txt'
+      - 'Source/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
   pull_request:
     paths:

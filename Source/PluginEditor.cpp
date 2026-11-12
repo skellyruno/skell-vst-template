@@ -23,7 +23,7 @@ SkellAudioProcessorEditor::SkellAudioProcessorEditor(SkellAudioProcessor& p)
 
   skellcore::ui::populateStudioSkinSelector(skinSelector_);
   skinSelector_.setSelectedId(static_cast<int>(skin_.skin()) + 1, juce::dontSendNotification);
-  skinSelector_.setTooltip("Appearance (shared across SKELL plugins that use StudioUI)");
+  skinSelector_.setTooltip("Appearance for this plugin (not shared with other SKELL plugins)");
   skinSelector_.onChange = [this] {
     if (skinSelector_.getSelectedId() > 0)
       setStudioSkin(skellcore::ui::studioSkinFromIndex(

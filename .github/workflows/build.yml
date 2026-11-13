@@ -28,9 +28,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S . -B build -A x64
+        run: cmake -S . -B build -A x64 -DSKELLCORE_BUILD_HOST_READINESS=ON
       - name: Build
         run: cmake --build build --config Release --parallel 2
+      - name: Actual JUCE plugin lifecycle, state, automation and 8-instance CPU
+        shell: pwsh
+        run: |
+          $hostSmoke = Get-ChildItem build -Recurse -File -Filter 'SkellCoreHostReadiness.exe' | Select-Object -First 1
+          if (-not $hostSmoke) { throw 'Host-readiness executable missing' }
+          & $hostSmoke.FullName 2>&1 | Tee-Object -FilePath skell-host-readiness.txt
+          if ($LASTEXITCODE -ne 0) { throw "Host-readiness check failed: $LASTEXITCODE" }
+      - name: Save host-readiness measurements
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          retention-days: 14
+          name: SkellCore-Host-Readiness-Report
+          path: skell-host-readiness.txt
+          if-no-files-found: warn
       - name: Package
         shell: pwsh
         run: |

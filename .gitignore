@@ -8,3 +8,4 @@
 *.user
 *.suo
 .DS_Store
+/host-reports/

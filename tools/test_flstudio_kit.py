@@ -23,7 +23,8 @@ class HostTestKitTests(unittest.TestCase):
                 self.assertEqual(wav.getframerate(), 48000)
                 self.assertEqual(wav.getnframes(), 576000)
                 # Stereo is intentionally non-identical in the audible regions.
-                stereo = wav.readframes(1000)
+                wav.setpos(11)
+                stereo = wav.readframes(1)
                 self.assertNotEqual(stereo[2:4], stereo[0:2])
                 # Silence at 3s and 7s must be actual digital zero.
                 for second in (3.5, 7.5):

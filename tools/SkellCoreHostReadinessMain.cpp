@@ -206,10 +206,115 @@ bool multiInstanceBench() {
     return require(std::isfinite(checksum) && std::isfinite(elapsed) && elapsed>=0.,
                    "invalid CPU bench measurements");
 }
+
+// A serial processing matrix: measures *processBlock* CPU, excluding buffer
+// preparation, host scheduling, GUI, ASIO and rendering. Informational only.
+// Each instance receives the same known input and independent parameters.
+bool sampleRateAndInstanceMatrix() {
+    constexpr int rates[] { 44100, 48000, 96000 };
+    constexpr int sizes[] { 64, 128, 512 };
+    constexpr int counts[] { 1, 4, 8, 16 };
+    constexpr int blocks = 96;
+    bool success = true;
+    std::puts("SKELL_MATRIX_CSV,rate,block,instances,process_ms,audio_seconds,serial_ratio,checksum");
+    for (const int rate : rates) {
+        for (const int blockSize : sizes) {
+            for (const int count : counts) {
+                std::vector<std::unique_ptr<SkellAudioProcessor>> processors;
+                processors.reserve(static_cast<std::size_t>(count));
+                std::vector<juce::AudioBuffer<float>> buffers;
+                buffers.reserve(static_cast<std::size_t>(count));
+                for (int instance = 0; instance < count; ++instance) {
+                    auto processor = std::make_unique<SkellAudioProcessor>();
+                    const float expectedGain = 0.90f + 0.06f * instance;
+                    if (!require(setActualParameter(*processor, "gain", expectedGain),
+                                 "matrix gain parameter missing")
+                        || !require(setActualParameter(*processor, "enabled",
+                                       instance % 4 != 0 ? 1.f : 0.f),
+                                    "matrix enabled parameter missing"))
+                        return false;
+                    processor->prepareToPlay(rate, blockSize);
+                    buffers.emplace_back(2, blockSize);
+                    processors.push_back(std::move(processor));
+                }
+                juce::MidiBuffer midi;
+                double elapsedMs = 0.0, checksum = 0.0;
+                for (int block = 0; block < blocks; ++block) {
+                    for (int instance = 0; instance < count; ++instance) {
+                        auto& processor = *processors[static_cast<std::size_t>(instance)];
+                        auto& audio = buffers[static_cast<std::size_t>(instance)];
+                        // Test an actual automated bypass transition mid-stream.
+                        if (block == 32 && (instance % 4) == 1
+                            && !setActualParameter(processor, "enabled", 0.f))
+                            return require(false, "matrix bypass automation failed");
+                        const float l = 0.075f + .0001f * instance;
+                        const float r = -0.06f - .0001f * instance;
+                        for (int i = 0; i < blockSize; ++i) {
+                            audio.setSample(0, i, l);
+                            audio.setSample(1, i, r);
+                        }
+                        const auto start = std::chrono::steady_clock::now();
+                        processor.processBlock(audio, midi);
+                        const auto finish = std::chrono::steady_clock::now();
+                        elapsedMs += std::chrono::duration<double, std::milli>(
+                            finish - start).count();
+                        const auto actualL = audio.getSample(0, blockSize-1);
+                        const auto actualR = audio.getSample(1, blockSize-1);
+                        checksum += actualL + actualR;
+                        if (!std::isfinite(actualL) || !std::isfinite(actualR))
+                            return require(false, "matrix non-finite output");
+                        // The final blocks exceed the 15ms smoothing window
+                        // even at 96kHz/64 samples, so gain/bypass must settle.
+                        if (block == blocks - 1) {
+                            const float actualGain = readActualParameter(processor,"gain");
+                            const bool enabled = readActualParameter(processor,"enabled") >= .5f;
+                            const float expected = enabled ? actualGain : 1.f;
+                            if (!require(std::abs(actualL - l * expected) <= .0015f
+                                         && std::abs(actualR - r * expected) <= .0015f,
+                                         "matrix gain/bypass or instance isolation failed"))
+                                return false;
+                        }
+                    }
+                }
+                const double audioSeconds = (double(blocks) * blockSize) / double(rate);
+                const double serialRatio = elapsedMs / (audioSeconds * 1000.0);
+                if (!require(std::isfinite(elapsedMs) && elapsedMs >= 0.
+                             && std::isfinite(serialRatio)
+                             && std::isfinite(checksum),
+                             "matrix timing or checksum invalid"))
+                    return false;
+                std::printf("SKELL_MATRIX_CSV,%d,%d,%d,%.5f,%.5f,%.6f,%.7f\n",
+                            rate, blockSize, count, elapsedMs, audioSeconds,
+                            serialRatio, checksum);
+                for (auto& p : processors) p->releaseResources();
+            }
+        }
+    }
+
+    // Mono is a supported host layout as well as stereo.
+    SkellAudioProcessor monoProcessor;
+    auto monoLayout = monoProcessor.getBusesLayout();
+    monoLayout.inputBuses.set(0, juce::AudioChannelSet::mono());
+    monoLayout.outputBuses.set(0, juce::AudioChannelSet::mono());
+    if (!require(monoProcessor.setBusesLayout(monoLayout),
+                 "mono layout refused")) return false;
+    monoProcessor.prepareToPlay(48000., 128);
+    juce::AudioBuffer<float> monoBuffer(1, 128);
+    monoBuffer.clear();
+    for (int i=0; i<128; ++i) monoBuffer.setSample(0, i, .125f);
+    juce::MidiBuffer midi;
+    monoProcessor.processBlock(monoBuffer, midi);
+    if (!require(std::isfinite(monoBuffer.getSample(0,127))
+                 && std::abs(monoBuffer.getSample(0,127)-.125f) <= .001f,
+                 "mono processing invalid")) return false;
+    monoProcessor.releaseResources();
+    std::puts("PASS: 36 rate/block/instance cases and mono host layout");
+    return success;
+}
 }
 int main() {
     juce::ScopedJuceInitialiser_GUI initialiseJuce;
-    if (!stateAndAutomation() || !multiInstanceBench()) return 1;
+    if (!stateAndAutomation() || !multiInstanceBench() || !sampleRateAndInstanceMatrix()) return 1;
     std::puts("PASS: SkellCore Quickstart host readiness smoke");
     return 0;
 }

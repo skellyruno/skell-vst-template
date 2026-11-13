@@ -1,0 +1,59 @@
+name: SkellCore / External VST3 host validation
+
+# Validates the packaged VST3 binary in pluginval, not just the linked
+# Quickstart processor used by the JUCE host-readiness harness.
+on:
+  push:
+    branches: ['feature/**']
+    paths:
+      - 'CMakeLists.txt'
+      - 'Source/**'
+      - 'SkellCore/**'
+      - '.github/workflows/vst3-host-validation.yml'
+  pull_request:
+    paths:
+      - 'CMakeLists.txt'
+      - 'Source/**'
+      - 'SkellCore/**'
+      - '.github/workflows/vst3-host-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  pluginval-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure and build actual Windows VST3 bundle
+        shell: pwsh
+        run: |
+          cmake -S . -B host-build -A x64
+          if ($LASTEXITCODE -ne 0) { throw "VST3 host configure failed" }
+          cmake --build host-build --config Release --target SkellPlugin_VST3 --parallel 2
+          if ($LASTEXITCODE -ne 0) { throw "VST3 host compile failed" }
+      - name: Validate VST3 with pinned pluginval 1.0.4
+        shell: pwsh
+        run: |
+          $plugin = Get-ChildItem host-build -Recurse -Directory -Filter '*.vst3' | Select-Object -First 1
+          if (-not $plugin) { throw "No VST3 bundle found" }
+          Write-Host "Validating exact binary: $($plugin.FullName)"
+          $uri = 'https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip'
+          Invoke-WebRequest -Uri $uri -OutFile pluginval.zip
+          Expand-Archive -Path pluginval.zip -DestinationPath pluginval-tools -Force
+          $binary = Get-ChildItem pluginval-tools -Recurse -File -Filter 'pluginval.exe' | Select-Object -First 1
+          if (-not $binary) { throw "pluginval.exe missing from pinned release archive" }
+          $arguments = @('--validate-in-process', '--strictness-level', '5', '--skip-gui-tests', '--validate', ('"' + $plugin.FullName + '"'))
+          $process = Start-Process -FilePath $binary.FullName -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput pluginval-stdout.log -RedirectStandardError pluginval-stderr.log
+          Get-Content pluginval-stdout.log | Out-Host
+          Get-Content pluginval-stderr.log | Out-Host
+          if ($process.ExitCode -ne 0) { throw "pluginval returned $($process.ExitCode): VST3 host validation failed" }
+      - name: Preserve independent host compatibility logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkellCore-pluginval-Windows
+          retention-days: 14
+          path: |
+            pluginval-stdout.log
+            pluginval-stderr.log
+          if-no-files-found: warn

@@ -9,3 +9,4 @@
 *.suo
 .DS_Store
 /host-reports/
+/host-test-kit/

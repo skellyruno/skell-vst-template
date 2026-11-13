@@ -59,12 +59,13 @@ bool processKnownSignal(SkellAudioProcessor& processor, int frames,
 
 bool stateAndAutomation() {
     SkellAudioProcessor original;
-    if (!require(original.isBusesLayoutSupported(
-                     { juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo() }),
+    const auto stereo = original.getBusesLayout();
+    auto mismatch = stereo;
+    mismatch.outputBuses.set(0, juce::AudioChannelSet::mono());
+    if (!require(original.isBusesLayoutSupported(stereo),
                  "stereo layout rejected")
-        || !require(!original.isBusesLayoutSupported(
-                     { juce::AudioChannelSet::stereo(), juce::AudioChannelSet::mono() }),
-                 "mismatched bus layout accepted")
+        || !require(!original.isBusesLayoutSupported(mismatch),
+                    "mismatched bus layout accepted")
         || !require(original.getLatencySamples() == 0, "unexpected reported latency"))
         return false;
 

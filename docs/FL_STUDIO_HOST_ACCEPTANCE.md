@@ -5,6 +5,26 @@ integration. The JUCE processor smoke tests instantiate Quickstart directly;
 they do not prove actual FL Studio host compatibility. Record a pass only
 after testing the latest compiled and identified Windows VST3 binary.
 
+## Reproducible acceptance materials
+
+Generate an original WAV and a results sheet from the repository:
+
+    python tools/Make-FLStudio-TestKit.py --out host-test-kit
+
+Or use the downloadable SkellCore FL Studio acceptance-kit ZIP. The WAV
+contains an original 12-second 48 kHz stereo signal (different L/R tones),
+silent segments and transient probes. Import it into a clean FL Studio project
+without normalization or other effects. Fill in results.csv while testing.
+
+For **local Windows CPU baselines** on your own Ryzen CPU, run:
+
+    powershell -ExecutionPolicy Bypass -File .\\tools\\Run-SkellHostValidation.ps1
+
+That creates a 36-row matrix and a binary hash. The numbers do not measure
+FL Studio's audio thread; the real FL Studio CPU fields in results.csv must
+still be collected while the DAW is running. See
+docs/LOCAL_WINDOWS_HOST_VALIDATION.md for details.
+
 ## 1. Exact binary under test
 
 - Commit SHA: `____________`

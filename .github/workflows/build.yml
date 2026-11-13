@@ -12,6 +12,8 @@ on:
       - 'SkellCore/**'
       - 'CMakeLists.txt'
       - 'Source/**'
+      - 'tools/SkellCoreHostReadinessMain.cpp'
+      - 'tools/Run-SkellHostValidation.ps1'
       - '.github/workflows/build.yml'
   workflow_dispatch:
   pull_request:
@@ -19,6 +21,8 @@ on:
       - 'SkellCore/**'
       - 'CMakeLists.txt'
       - 'Source/**'
+      - 'tools/SkellCoreHostReadinessMain.cpp'
+      - 'tools/Run-SkellHostValidation.ps1'
       - '.github/workflows/build.yml'
 
 jobs:
@@ -31,20 +35,26 @@ jobs:
         run: cmake -S . -B build -A x64 -DSKELLCORE_BUILD_HOST_READINESS=ON
       - name: Build
         run: cmake --build build --config Release --parallel 2
-      - name: Actual JUCE plugin lifecycle, state, automation and 8-instance CPU
+      - name: Actual JUCE plugin lifecycle, state, automation and 36-case CPU matrix
         shell: pwsh
         run: |
           $hostSmoke = Get-ChildItem build -Recurse -File -Filter 'SkellCoreHostReadiness.exe' | Select-Object -First 1
           if (-not $hostSmoke) { throw 'Host-readiness executable missing' }
           & $hostSmoke.FullName 2>&1 | Tee-Object -FilePath skell-host-readiness.txt
           if ($LASTEXITCODE -ne 0) { throw "Host-readiness check failed: $LASTEXITCODE" }
+          @((Get-Content skell-host-readiness.txt) | Where-Object { $_ -match '^SKELL_MATRIX_CSV,' }) |
+            ForEach-Object { $_ -replace '^SKELL_MATRIX_CSV,', '' } |
+            Set-Content -Path skell-host-matrix.csv -Encoding utf8
+          if (@(Get-Content skell-host-matrix.csv).Count -ne 37) { throw 'Expected 36 host CPU matrix rows plus header' }
       - name: Save host-readiness measurements
         uses: actions/upload-artifact@v4
         if: always()
         with:
           retention-days: 14
           name: SkellCore-Host-Readiness-Report
-          path: skell-host-readiness.txt
+          path: |
+            skell-host-readiness.txt
+            skell-host-matrix.csv
           if-no-files-found: warn
       - name: Package
         shell: pwsh

@@ -42,3 +42,18 @@ if(SKELLCORE_BUILD_UI_RENDERER)
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
   target_compile_features(SkellCoreUISmokeRenderer PRIVATE cxx_std_17)
 endif()
+
+# Optional test of the REAL Quickstart AudioProcessor, editor, automation and
+# state API. Build in CI but keep it out of normal plugin dependencies.
+option(SKELLCORE_BUILD_HOST_READINESS "Build JUCE host lifecycle and CPU smoke tests" OFF)
+if(SKELLCORE_BUILD_HOST_READINESS)
+  add_executable(SkellCoreHostReadiness tools/SkellCoreHostReadinessMain.cpp)
+  target_include_directories(SkellCoreHostReadiness PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/SkellPlugin_artefacts/JuceLibraryCode")
+  target_link_libraries(SkellCoreHostReadiness PRIVATE
+    SkellPlugin SkellCore::DSP SkellCore::UI
+    juce::juce_audio_utils juce::juce_gui_extra)
+  target_compile_definitions(SkellCoreHostReadiness PRIVATE
+    JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  target_compile_features(SkellCoreHostReadiness PRIVATE cxx_std_17)
+endif()

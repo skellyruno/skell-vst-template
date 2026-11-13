@@ -56,6 +56,37 @@ jobs:
             skell-host-readiness.txt
             skell-host-matrix.csv
           if-no-files-found: warn
+      - name: Record exact packaged binary identity
+        shell: pwsh
+        run: |
+          $bundle = Get-ChildItem build -Recurse -Directory -Filter '*.vst3' | Select-Object -First 1
+          if (-not $bundle) { throw 'VST3 bundle missing' }
+          $binary = Get-ChildItem $bundle.FullName -Recurse -File -Filter '*.vst3' | Select-Object -First 1
+          if (-not $binary) { throw 'VST3 x64 binary missing from bundle' }
+          $standalone = Get-ChildItem build -Recurse -File -Filter 'Skell Quickstart.exe' | Select-Object -First 1
+          if (-not $standalone) { throw 'Standalone exe missing' }
+          $manifest = [ordered]@{
+            schema = 'skellcore-windows-build/1'
+            commit = (git rev-parse HEAD)
+            git_ref = $env:GITHUB_REF
+            runner = $env:RUNNER_OS
+            generated_utc = (Get-Date).ToUniversalTime().ToString('o')
+            vst3_bundle = $bundle.Name
+            vst3_binary = $binary.Name
+            vst3_binary_sha256 = (Get-FileHash $binary.FullName -Algorithm SHA256).Hash
+            standalone_sha256 = (Get-FileHash $standalone.FullName -Algorithm SHA256).Hash
+            host_matrix_cases = 36
+            editor_branding_approved = $false
+            fl_studio_acceptance_verified = $false
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content SkellCore-Build-Manifest.json -Encoding utf8
+      - name: Upload exact binary manifest
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 14
+          name: SkellCore-Build-Manifest
+          path: SkellCore-Build-Manifest.json
+          if-no-files-found: error
       - name: Package
         shell: pwsh
         run: |

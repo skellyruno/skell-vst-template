@@ -22,6 +22,12 @@ Last reviewed: 2026-11-13
 
 **Wired ≠ built/tested.** Silence, DeEsser, Preset, and Fan have code paths ready but require local C++ compile + capture validation. Flang and Mini now passed local compilation and actual 4/4 screenshot tests; screenshots don't prove Windows VST3 success. Screenshot-only GitHub workflows (where present) are manual-only.
 
+## Persistent workspace (preferred for new UI work)
+
+Use quick4.ps1 (Windows Developer PowerShell) or quick4.sh (Linux), both backed by tools/quick4_workspace.py. They cache the selected project's actual Git revision, pinned JUCE source, and CMake/Ninja objects under ~/Skelly/Quick4. The cross-chat capture ZIP includes 4 real PNGs, contact sheet, manifest and Git SHA; see docs/QUICK4_PERSISTENT_WORKSPACE.md. A new chat's /mnt/data does not automatically mount that persistent local workspace. Never present captures of an older commit as current.
+
+For Skell Preset the shared router passes --quick4 to the actual SkellPresetUIRenderer, capturing Simple, Advanced, movable effect picker and MIC. --full retains the original ~110-scene regression suite. Windows runs the local renderer directly without Xvfb; Linux uses Xvfb. This wiring is not yet native-build verified in the present isolated environment and must be smoke-tested on Windows/Linux before claiming visual perfection.
+
 ## Execute from one local workspace
 
 Check out source (or use a verified offline source archive), supply pinned JUCE 8 and SkellCore headers, source the isolated Linux development overlay if running in a restricted container:

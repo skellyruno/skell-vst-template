@@ -1,0 +1,29 @@
+name: Quick4 local tooling tests (no screenshots)
+on:
+  pull_request:
+    paths:
+      - 'tools/quick4_projects.py'
+      - 'tools/quick4_workspace.py'
+      - 'tools/test_quick4_workspace.py'
+      - '.github/workflows/quick4-tooling.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/quick4_projects.py'
+      - 'tools/quick4_workspace.py'
+      - 'tools/test_quick4_workspace.py'
+      - '.github/workflows/quick4-tooling.yml'
+
+jobs:
+  pure-python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source files (syntax)
+        run: python -m compileall -q tools/quick4_projects.py tools/quick4_workspace.py tools/test_quick4_workspace.py
+      - name: Test offline cache and safety logic
+        run: python -m unittest discover -s tools -p test_quick4_workspace.py -v

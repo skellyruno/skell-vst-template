@@ -100,3 +100,11 @@ The new-plugin generator pins the tested SkellCore revision including `<SkellCor
 ## Guided Tours for complex SKELL plugins
 
 SkellCore now includes an **opt-in first-run tutorial overlay**, based on OmniChoir FX's real tour implementation: spotlight one control, Back/Next/Skip, remembered completion and replay from Help. It supports nested controls and tab switching without changing plugin parameters or DSP. Simple plugins remain tutorial-free. Read [the Guided Tours adoption guide](docs/GUIDED_TOURS.md) for Skell Preset, Skell Afar and Skell Silence integration.
+
+## Persistent local Quick4 captures (Windows and Linux)
+
+Quick4 now has a reusable per-user workspace: real JUCE plugin source, pinned JUCE, incremental Ninja build objects, four real PNG scenes, contact sheet, source/provenance report and self-contained ZIP for later chats.
+
+On Windows (Visual Studio Developer PowerShell), use the local quick4.ps1 wrapper; on Linux, use bash quick4.sh. Supply -Ref / --ref and -Update / --update to explicitly fetch the desired source branch. Once cached, use -Offline / --offline for a no-network repeat capture. Skell-Preset opts into a genuine four-scene --quick4 mode; its full 110-scene audit remains available with -Full / --full.
+
+See [persistent Quick4 setup and exact commands](docs/QUICK4_PERSISTENT_WORKSPACE.md). This does not auto-mount Windows files into a fresh ChatGPT chat. Sharing the generated capture ZIP provides a faithful exact-commit handoff without rerendering old builds or triggering automatic screenshot workflows.

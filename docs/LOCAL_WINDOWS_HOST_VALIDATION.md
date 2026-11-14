@@ -27,8 +27,11 @@ audio devices. It builds to build-host-local and saves these files locally:
 - host-reports/host-matrix.csv — 36 separate measured cases
 - host-reports/host-summary.json — CPU/OS, source commit and VST3 SHA256
 
-These folders are ignored by Git. The -SkipBuild option can execute an older
-binary against a newer checkout; rebuild before release verification.
+These folders are ignored by Git. For release safety, -SkipBuild now
+requires a **clean Git checkout** and a matching build revision stamp. If
+source changes, the command refuses to associate an older executable with
+a newer commit; rerun without -SkipBuild instead. A source tree modified
+outside Git is not a releasable binary provenance claim.
 
 ## Test coverage
 

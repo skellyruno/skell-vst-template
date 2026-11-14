@@ -215,8 +215,7 @@ bool sampleRateAndInstanceMatrix() {
     constexpr int sizes[] { 64, 128, 512 };
     constexpr int counts[] { 1, 4, 8, 16 };
     constexpr int blocks = 96;
-    bool success = true;
-    std::puts("SKELL_MATRIX_CSV,rate,block,instances,process_ms,audio_seconds,serial_ratio,checksum");
+    std::puts("SKELL_MATRIX_CSV,rate,block,instances,process_ms,audio_seconds,serial_ratio,checksum,p95_call_us,max_call_us");
     for (const int rate : rates) {
         for (const int blockSize : sizes) {
             for (const int count : counts) {
@@ -239,6 +238,9 @@ bool sampleRateAndInstanceMatrix() {
                 }
                 juce::MidiBuffer midi;
                 double elapsedMs = 0.0, checksum = 0.0;
+                // Allocate only in the test harness, never in processBlock.
+                std::vector<double> callTimesUs;
+                callTimesUs.reserve(static_cast<std::size_t>(count * blocks));
                 for (int block = 0; block < blocks; ++block) {
                     for (int instance = 0; instance < count; ++instance) {
                         auto& processor = *processors[static_cast<std::size_t>(instance)];
@@ -247,8 +249,9 @@ bool sampleRateAndInstanceMatrix() {
                         if (block == 32 && (instance % 4) == 1
                             && !setActualParameter(processor, "enabled", 0.f))
                             return require(false, "matrix bypass automation failed");
-                        const float l = 0.075f + .0001f * instance;
-                        const float r = -0.06f - .0001f * instance;
+                        const bool digitalSilence = block == 12 || block == 45;
+                        const float l = digitalSilence ? 0.f : (0.075f + .0001f * instance);
+                        const float r = digitalSilence ? 0.f : (-0.06f - .0001f * instance);
                         for (int i = 0; i < blockSize; ++i) {
                             audio.setSample(0, i, l);
                             audio.setSample(1, i, r);
@@ -256,19 +259,34 @@ bool sampleRateAndInstanceMatrix() {
                         const auto start = std::chrono::steady_clock::now();
                         processor.processBlock(audio, midi);
                         const auto finish = std::chrono::steady_clock::now();
-                        elapsedMs += std::chrono::duration<double, std::milli>(
+                        const double callUs = std::chrono::duration<double, std::micro>(
                             finish - start).count();
+                        elapsedMs += callUs / 1000.0;
+                        callTimesUs.push_back(callUs);
                         const auto actualL = audio.getSample(0, blockSize-1);
                         const auto actualR = audio.getSample(1, blockSize-1);
                         checksum += actualL + actualR;
-                        if (!std::isfinite(actualL) || !std::isfinite(actualR))
-                            return require(false, "matrix non-finite output");
+                        for (int sample = 0; sample < blockSize; ++sample) {
+                            const float outL = audio.getSample(0, sample);
+                            const float outR = audio.getSample(1, sample);
+                            if (!std::isfinite(outL) || !std::isfinite(outR))
+                                return require(false, "matrix non-finite output sample");
+                            if (digitalSilence && (outL != 0.f || outR != 0.f))
+                                return require(false, "matrix silence created nonzero audio");
+                        }
                         // The final blocks exceed the 15ms smoothing window
                         // even at 96kHz/64 samples, so gain/bypass must settle.
                         if (block == blocks - 1) {
                             const float actualGain = readActualParameter(processor,"gain");
+                            const float expectedGain = 0.90f + 0.06f * instance;
                             const bool enabled = readActualParameter(processor,"enabled") >= .5f;
-                            const float expected = enabled ? actualGain : 1.f;
+                            const bool expectedEnabled = instance % 4 != 0 && instance % 4 != 1;
+                            if (!require(std::abs(actualGain - expectedGain) <= .0015f,
+                                         "instance gain parameter cross-talk")
+                                || !require(enabled == expectedEnabled,
+                                            "instance enabled parameter cross-talk"))
+                                return false;
+                            const float expected = expectedEnabled ? expectedGain : 1.f;
                             if (!require(std::abs(actualL - l * expected) <= .0015f
                                          && std::abs(actualR - r * expected) <= .0015f,
                                          "matrix gain/bypass or instance isolation failed"))
@@ -283,9 +301,15 @@ bool sampleRateAndInstanceMatrix() {
                              && std::isfinite(checksum),
                              "matrix timing or checksum invalid"))
                     return false;
-                std::printf("SKELL_MATRIX_CSV,%d,%d,%d,%.5f,%.5f,%.6f,%.7f\n",
+                std::sort(callTimesUs.begin(), callTimesUs.end());
+                const auto p95Index = (callTimesUs.size() - 1) * 95 / 100;
+                const double p95CallUs = callTimesUs[p95Index];
+                const double maxCallUs = callTimesUs.back();
+                if (!require(std::isfinite(p95CallUs) && std::isfinite(maxCallUs),
+                             "matrix tail timings invalid")) return false;
+                std::printf("SKELL_MATRIX_CSV,%d,%d,%d,%.5f,%.5f,%.6f,%.7f,%.5f,%.5f\n",
                             rate, blockSize, count, elapsedMs, audioSeconds,
-                            serialRatio, checksum);
+                            serialRatio, checksum, p95CallUs, maxCallUs);
                 for (auto& p : processors) p->releaseResources();
             }
         }
@@ -309,7 +333,7 @@ bool sampleRateAndInstanceMatrix() {
                  "mono processing invalid")) return false;
     monoProcessor.releaseResources();
     std::puts("PASS: 36 rate/block/instance cases and mono host layout");
-    return success;
+    return true;
 }
 }
 int main() {

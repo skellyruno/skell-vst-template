@@ -63,19 +63,12 @@ def ensure_plugin(name: str, location: Path, *, ref: str | None,
     if update:
         if offline:
             raise RuntimeError("--offline and --update are mutually exclusive")
+        if not ref:
+            raise RuntimeError("--update requires an explicit --ref (no implicit branch switching)")
         require_clean(location)
-        if ref:
-            # Fetch a precise branch/tag by name, without merging into main.
-            run("git", "-C", str(location), "fetch", "--depth", "1", "origin", ref)
-            run("git", "-C", str(location), "checkout", "--detach", "FETCH_HEAD")
-        else:
-            current = output("git", "-C", str(location), "symbolic-ref", "--short",
-                             "HEAD") if output("git", "-C", str(location),
-                                                "symbolic-ref", "-q", "HEAD") else None
-            if not current:
-                raise RuntimeError("Detached source: supply --ref with --update")
-            run("git", "-C", str(location), "fetch", "origin", current)
-            run("git", "-C", str(location), "merge", "--ff-only", "FETCH_HEAD")
+        # Never merge, force reset, or overwrite someone else's work.
+        run("git", "-C", str(location), "fetch", "--depth", "1", "origin", ref)
+        run("git", "-C", str(location), "checkout", "--detach", "FETCH_HEAD")
     elif ref:
         require_clean(location)
         candidates = [ref, f"origin/{ref}"]

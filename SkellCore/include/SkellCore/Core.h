@@ -180,6 +180,11 @@ private:
 
 // Interpolated-peak lookahead limiter (Standard 4x, Economy 2x).
 // Neither quality is BS.1770-certified.
+// Gain is the sliding minimum of the required gain over the whole lookahead window, smoothed by a boxcar
+// of matching length, so every sample leaves the limiter with a gain that is <= what it needs (no
+// overshoot from a release that starts early), attack is a ~3 ms ramp rather than a step (no clicks), and
+// release is a 70 ms one-pole. Output is bit-exact (just delayed) while the signal stays under the ceiling.
+// Host must report latencySamples() for delay compensation. Processes mono/stereo.
 // Host must report latencySamples() for delay compensation. Processes mono/stereo.
 class TruePeakLimiter {
 public:
@@ -214,6 +219,13 @@ public:
                 phaseKernel[static_cast<std::size_t>(j)] /= sum;
         }
         releasePole_ = detail::pole(rate_, 70.0);
+        // Window = every sample still in the delay line. Interpolated peaks are detected up to ~taps/2
+        // samples after the sample they belong to, so the boxcar is shortened by that lag.
+        windowLen_ = delaySamples_ + 1;
+        boxLen_ = std::max(1, delaySamples_ - (activeTaps_ / 2 + 1));
+        minValue_.assign(static_cast<std::size_t>(windowLen_) + 1, 1.0);
+        minTime_.assign(static_cast<std::size_t>(windowLen_) + 1, 0);
+        box_.assign(static_cast<std::size_t>(boxLen_), 1.0);
         reset();
         ready_ = true;
     }
@@ -221,6 +233,9 @@ public:
         for (auto& b : delay_) std::fill(b.begin(), b.end(), 0.f);
         for (auto& h : history_) h.fill(0.0);
         write_ = 0; historyWrite_ = 0; gain_ = 1.0; hold_ = 0;
+        std::fill(box_.begin(), box_.end(), 1.0);
+        boxSum_ = static_cast<double>(box_.size()); boxPos_ = 0;
+        dqHead_ = 0; dqCount_ = 0; now_ = 0;
     }
     void setCeilingDb(float db) noexcept {
         const float clamped = static_cast<float>(detail::clamp(db, -24, 0));
@@ -235,7 +250,9 @@ public:
     Quality quality() const noexcept { return quality_; }
     std::size_t estimatedWorkingBytes() const noexcept {
         return 2 * (static_cast<std::size_t>(delaySamples_) + 1) * sizeof(float)
-             + sizeof(history_) + sizeof(kernel_);
+             + sizeof(history_) + sizeof(kernel_)
+             + minValue_.size() * sizeof(double) + minTime_.size() * sizeof(std::int64_t)
+             + box_.size() * sizeof(double);
     }
     void processFrame(const float* input, float* output, int channels) noexcept {
         if (!input || !output) return;
@@ -268,9 +285,32 @@ public:
         }
         historyWrite_ = (h + 1) & (taps - 1);
         const double desired = peak > ceiling_ ? ceiling_ / peak : 1.0;
-        if (desired < gain_) { gain_ = desired; hold_ = delaySamples_ + activeTaps_; }
-        else if (hold_ > 0) --hold_;
-        else gain_ = releasePole_ * gain_ + (1.0 - releasePole_) * desired;
+        // 1) sliding minimum of `desired` over the last windowLen_ samples (monotonic deque, O(1) amortised)
+        const std::size_t cap = minValue_.size();
+        while (dqCount_ > 0) {
+            const std::size_t back = (dqHead_ + dqCount_ - 1) % cap;
+            if (minValue_[back] >= desired) --dqCount_; else break;
+        }
+        {
+            const std::size_t slot = (dqHead_ + dqCount_) % cap;
+            minValue_[slot] = desired; minTime_[slot] = now_; ++dqCount_;
+        }
+        while (minTime_[dqHead_] <= now_ - windowLen_) { dqHead_ = (dqHead_ + 1) % cap; --dqCount_; }
+        const double windowMin = minValue_[dqHead_];
+        ++now_;
+        // 2) boxcar average of the minimum: a smooth attack that completes as the peak leaves the delay line
+        boxSum_ += windowMin - box_[boxPos_];
+        box_[boxPos_] = windowMin;
+        if (++boxPos_ == box_.size()) {
+            boxPos_ = 0;
+            boxSum_ = 0.0;                                   // exact re-sum once per window: no drift
+            for (double v : box_) boxSum_ += v;
+        }
+        const double target = boxSum_ / static_cast<double>(box_.size());
+        // 3) slow release toward unity, never above the target (the guarantee)
+        const double relaxed = std::min(1.0, releasePole_ * gain_ + (1.0 - releasePole_));
+        gain_ = std::min(target, relaxed);
+        if (gain_ > 1.0 - 1.e-9) gain_ = 1.0;
         const std::size_t next = write_ + 1 == delay_[0].size() ? 0 : write_ + 1;
         for (int c = 0; c < count; ++c)
             output[c] = static_cast<float>(delay_[static_cast<std::size_t>(c)][next] * gain_);
@@ -281,7 +321,12 @@ private:
     double rate_ = 48000.0, ceiling_ = .891250938, gain_ = 1.0, releasePole_ = .999;
     int channels_ = 2, delaySamples_ = 144, hold_ = 0, historyWrite_ = 0;
     int activeTaps_ = taps, activePhases_ = 4;
-    std::size_t write_ = 0;
+    int windowLen_ = 145, boxLen_ = 135;
+    std::size_t write_ = 0, dqHead_ = 0, dqCount_ = 0, boxPos_ = 0;
+    std::int64_t now_ = 0;
+    double boxSum_ = 0.0;
+    std::vector<double> minValue_, box_;
+    std::vector<std::int64_t> minTime_;
     bool ready_ = false, ceilingValid_ = false;
     float ceilingDb_ = -1.f;
     Quality quality_ = Quality::Standard;

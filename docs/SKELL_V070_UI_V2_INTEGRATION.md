@@ -1,0 +1,19 @@
+# SkellCore v0.7 DSP + UI v2 integration — development compatibility contract
+
+This branch deliberately combines the two existing development efforts without merging either one to `main`. Parent: UI v2 draft PR #26, head `7d291f1741510e649439e6a7e06575a2744099bb`. Source: v0.7.0 DSP draft PR #30, verified Windows/Ubuntu/sanitizers at `7694ffee`.
+
+## What is included
+- `SkellCore/include/SkellCore/Core.h` and `SkellCore/tests/test_limiter_parity.cpp` from v0.7.0. The generic limiter *behavior changes*; existing plugin IDs do not. No automatic rollout to Skell Master or other shipped DSP.
+- `FDN.h` and `test_fdn.cpp` (8/16-line reverb, original 4-line FDN preserved).
+- v0.7.0 performance guide, version increment to 0.7.0, and FDN CMake regression target.
+- UI v2 foundation left intact: neutral skull-family, product-scoped appearance store, preset bar, stereo meters, responsive grid, guided tour, local SkellWorld tuning and existing host lifecycle matrix.
+
+## Compatibility gates
+- Portable DSP test suites must pass on Linux/Windows and Linux ASan+UBSan.
+- Template Windows VST3 and Standalone must compile, real JUCE renderer must capture all scenes, and JUCE processor state/automation/8-16 instance tests must pass.
+- Generated plugin VST3 must compile against the **new integrated revision** after immutable pin is updated; do not accidentally verify an older source pin.
+- No swapping the new reverb into shipped plugins or assuming a certified true-peak limiter until real recorded-audio A/B and an external inter-sample peak check.
+- FL Studio saved-project, automation, latency and real CPU tests remain **manual/unverified** until an exact Windows VST3 build is checked.
+
+## Boundaries
+Do not merge either draft into production automatically. This branch is a *reconciliation candidate* against PR #26, not an instruction to overwrite it. Preserve all existing parameter IDs, presets, generator semantics, product artwork and user-approved interfaces.

@@ -121,10 +121,13 @@ def main() -> int:
         if "=" not in value or not value.split("=",1)[0].replace("_","").isalnum():
             p.error("Invalid --define: "+value)
     cmake=["cmake","-S",str(project),"-B",str(build),"-G","Ninja",
-           "-DCMAKE_BUILD_TYPE=Release",
-           "-DCMAKE_CXX_FLAGS_RELEASE=-O0 -DNDEBUG",
-           "-DCMAKE_C_FLAGS_RELEASE=-O0 -DNDEBUG",
-           f"-DJUCE_PATH={juce}",f"-D{cfg['option']}=ON"]
+           "-DCMAKE_BUILD_TYPE=Release",f"-DJUCE_PATH={juce}",
+           f"-D{cfg['option']}=ON"]
+    if os.name!="nt":
+        # Avoid GCC/Clang-only -O0 flags on native Windows MSVC builds.
+        # Native UI snapshots are diagnostics, not benchmark binaries.
+        cmake += ["-DCMAKE_CXX_FLAGS_RELEASE=-O0 -DNDEBUG",
+                  "-DCMAKE_C_FLAGS_RELEASE=-O0 -DNDEBUG"]
     if coredep=="SKELLCORE_PATH":
         cmake.append(f"-DSKELLCORE_PATH={core/'SkellCore'}")
     elif coredep:

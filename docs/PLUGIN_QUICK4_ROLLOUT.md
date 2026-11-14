@@ -18,7 +18,6 @@ Last reviewed: 2026-11-13
 | skell-deesser-vst | `SKELLY_DEESSER_BUILD_UI_RENDERER` | SkellyDeEsserUIRenderer | **WIRED**, native regression needs verification |
 | skell-preset-vst | `SKELL_PRESET_BUILD_UI_RENDERER` | SkellPresetUIRenderer | **WIRED**, native regression needs verification |
 | skell-flang-vst | `SKELLFLANG_BUILD_UI_SMOKE` | SkellFlangUiSmoke | **VERIFIED**, real native C++ Quick4 4/4 at 2.77s |
-
 | skell-fan-vst | `SKELLFAN_BUILD_UI_QUICK4` | SkellFanQuick4 | **WIRED**, native compiler verification pending |
 
 **Wired ≠ built/tested.** Silence, DeEsser, Preset, and Fan have code paths ready but require local C++ compile + capture validation. Flang and Mini now passed local compilation and actual 4/4 screenshot tests; screenshots don't prove Windows VST3 success. Screenshot-only GitHub workflows (where present) are manual-only.

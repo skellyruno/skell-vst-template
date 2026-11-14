@@ -1,4 +1,4 @@
-# SkellCore v0.3 — shared SKELL VST foundation
+# SkellCore v0.7.0 — shared SKELL VST foundation
 
 Portable C++17 DSP and optional JUCE 8 UI targets. This is an **initial tested foundation**, not a migration of every existing production-grade engine.
 
@@ -7,7 +7,8 @@ Portable C++17 DSP and optional JUCE 8 UI targets. This is an **initial tested f
 | `TempoClock` | Portable tests pass | Host BPM/PPQ clock, beat and sample math |
 | `PhraseTracker`, `OnsetDetector` | Portable tests pass | Lightweight envelope-based segment/onset cues; not language-aware |
 | `FDNReverb` | Portable tests pass | Four-delay Hadamard feedback network (new algorithm; no claim it matches existing reverb) |
-| `TruePeakLimiter` | Portable regression/parity tests pass | Standard 4x/16-tap or opt-in Economy 2x/8-tap interpolation. **Neither mode is true-peak certified.** |
+| `FDNReverb8`, `FDNReverb16` (`<SkellCore/FDN.h>`, `BandFDN<N>`) | Portable tests pass (RT60 per band, density, stereo, robustness, no allocation) | 8 or 16 lines, Householder feedback, prime delay lengths over a configurable range (`prepare(rate, minMs, maxMs)`), separate low- and high-band decay (`setParameters(decayLow, decayHigh, wet)`). Same real-time rules as `FDNReverb`, which is unchanged |
+| `TruePeakLimiter` | Portable ceiling/transparency/robustness tests pass (gain stage rewritten in v0.6.1) | Standard 4x/16-tap or opt-in Economy 2x/8-tap interpolation. **Neither mode is true-peak certified.** |
 | `PitchFormantEngine` | Imported SkellyTune backend available | Adapter keeps original engine available without silently changing existing plugins; dry pass-through until attached |
 | `ui::Theme`, `ui::LookAndFeel`, `ui::GlowCache` | Windows JUCE VST3 build verified | Reusable skin and bounded glow cache. Existing plugin UIs unchanged |
 

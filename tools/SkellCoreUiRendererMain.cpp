@@ -8,6 +8,8 @@
 #include <SkellCore/SkellPresetBar.h>
 #include <SkellCore/SkellMeterControls.h>
 #include <SkellCore/SkellResponsiveLayout.h>
+#include <SkellCore/SkellMovementJUCE.h>
+#include <SkellCore/SkellMenuTheme.h>
 #include <SkellCore/GuidedTour.h>
 #include <JuceHeader.h>
 #include <cstdio>
@@ -38,6 +40,86 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+    // Menu and settings components must inherit each plugin's own palette,
+    // including popups, combo chevrons and editable preset names.
+    for (auto skin : {skellcore::ui::StudioSkin::Ivory,
+                      skellcore::ui::StudioSkin::Obsidian,
+                      skellcore::ui::StudioSkin::Amethyst,
+                      skellcore::ui::StudioSkin::Crimson}) {
+        skellcore::ui::SkellHardwareLookAndFeel themed(skin);
+        const auto palette = skellcore::ui::studioPalette(skin);
+        if (themed.findColour(juce::PopupMenu::backgroundColourId) != palette.surface
+            || themed.findColour(juce::PopupMenu::highlightedBackgroundColourId) != palette.accent
+            || themed.findColour(juce::ComboBox::arrowColourId) != palette.foreground
+            || themed.findColour(juce::TextEditor::backgroundColourId) != palette.surface
+            || themed.findColour(juce::PopupMenu::highlightedTextColourId)
+                  != skellcore::ui::skellMenuSelectionText(palette)) {
+            std::fprintf(stderr, "Skell menu palette mismatch\n");
+            return 1;
+        }
+        juce::Image popupImage(juce::Image::ARGB, 200, 80, true);
+        {
+            juce::Graphics g(popupImage);
+            themed.drawPopupMenuBackground(g, 200, 80);
+            themed.drawPopupMenuItem(g, {1, 6, 198, 30}, false, true,
+                                   true, false, false, "Preset One", "Ctrl+1",
+                                   nullptr, nullptr);
+        }
+        if (popupImage.getPixelAt(4, 4).getAlpha() == 0
+            || popupImage.getPixelAt(70, 20).getAlpha() == 0) {
+            std::fprintf(stderr, "Themed popup did not paint\n");
+            return 1;
+        }
+        juce::ComboBox combo("Skell preset");
+        combo.addItem("A", 1);
+        combo.setSize(180, 30);
+        juce::Image comboImage(juce::Image::ARGB, 180, 30, true);
+        {
+            juce::Graphics g(comboImage);
+            themed.drawComboBox(g, 180, 30, false, 144, 0, 36, 30, combo);
+        }
+        if (comboImage.getPixelAt(166, 15).getAlpha() == 0) {
+            std::fprintf(stderr, "Themed combo did not paint\n");
+            return 1;
+        }
+    }
+    // Any plugin can override its accent WITHOUT changing other products.
+    skellcore::ui::SkellHardwareLookAndFeel customLook;
+    auto customPalette = customLook.palette();
+    customPalette.accent = juce::Colours::orange;
+    customPalette.foreground = juce::Colour(0xfff6ea98);
+    customPalette.surface = juce::Colour(0xff13203a);
+    customLook.setPalette(customPalette);
+    if (customLook.findColour(juce::PopupMenu::highlightedBackgroundColourId)
+           != customPalette.accent
+        || customLook.findColour(juce::Label::textColourId)
+           != customPalette.foreground
+        || customLook.findColour(juce::Slider::textBoxTextColourId)
+           != customPalette.foreground
+        || customLook.findColour(juce::ComboBox::backgroundColourId)
+           != customPalette.surface
+        || customLook.findColour(juce::TextButton::textColourOffId)
+           != customPalette.foreground) {
+        std::fprintf(stderr, "Custom plugin palette is not applied consistently\n");
+        return 1;
+    }
+    // Single-call palette helpers on existing shared controls.
+    skellcore::ui::SkellPowerButton palettePower;
+    skellcore::ui::SkellSettingsButton paletteSettingsButton;
+    skellcore::ui::SkellSettingsSurface paletteSettings;
+    skellcore::ui::SkellAudioLine paletteLine;
+    palettePower.setPalette(customPalette);
+    paletteSettingsButton.setPalette(customPalette);
+    paletteSettings.setPalette(customPalette);
+    paletteLine.setPalette(customPalette);
+    // JUCE adapter is opt-in: no timer runs in newly constructed editors.
+    skellcore::ui::SkellMovementAnimator movementAnimator;
+    if (movementAnimator.isRunning()
+        || movementAnimator.movement().intensity() != 0) {
+        std::fprintf(stderr, "Movement started a timer by default\n");
+        return 1;
+    }
 
     // Every skin needs a readable ComboBox chevron, including light Ivory.
     // The generic JUCE white default disappears on light surface colours.

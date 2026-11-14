@@ -40,6 +40,8 @@ jobs:
         run: python tools/test_new_plugin.py
       - name: Verify FL Studio reproducible acceptance kit
         run: python tools/test_flstudio_kit.py
+      - name: Verify FL Studio manually reported results checker
+        run: python tools/test_flstudio_results.py
       - name: SkellWorld protocol, hub and catalog integration
         run: python -m unittest discover -s SkellWorld/tests -v
 

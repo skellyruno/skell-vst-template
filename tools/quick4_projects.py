@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import time
+import zipfile
 
 # Each entry is a real, opt-in CMake target in that repository.
 # "wired" means code exists; it does NOT imply the local C++ build was tested.
@@ -190,6 +191,13 @@ def main() -> int:
             "caveat":"Not Windows VST3 or FL Studio validation",
         }
         (output/"local-build-report.json").write_text(json.dumps(report,indent=2)+"\n")
+        # Self-contained handoff across ChatGPT environments: verified UI
+        # PNGs, contact sheet, manifest and exact source commit evidence.
+        package=output/(args.plugin+"-quick4-"+source_commit[:12]+".zip")
+        with zipfile.ZipFile(package,"w",zipfile.ZIP_DEFLATED) as archive:
+            for name in sorted(expected | {"manifest.json","local-build-report.json"}):
+                archive.write(output/name,arcname=name)
+        print(f"CAPTURE ZIP: {package}")
         print(f"PASS: {args.plugin} compiled locally from {source_commit[:12]}"
               f"{' (dirty)' if dirty else ''}, {len(entries)} actual JUCE screenshots -> {output}")
         return 0

@@ -185,7 +185,6 @@ private:
 // overshoot from a release that starts early), attack is a ~3 ms ramp rather than a step (no clicks), and
 // release is a 70 ms one-pole. Output is bit-exact (just delayed) while the signal stays under the ceiling.
 // Host must report latencySamples() for delay compensation. Processes mono/stereo.
-// Host must report latencySamples() for delay compensation. Processes mono/stereo.
 class TruePeakLimiter {
 public:
     // Economy: 2 interpolated phases x 8 taps. Standard: 4 x 16.

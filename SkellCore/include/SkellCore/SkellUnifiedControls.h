@@ -109,7 +109,7 @@ public:
         g.fillRoundedRectangle(rect, 5.f);
         g.setColour(box.isEnabled() ? palette_.border : palette_.secondary);
         g.drawRoundedRectangle(rect, 5.f, 1.f);
-        g.setColour((box.isEnabled() ? palette_.accent : palette_.secondary)
+        g.setColour((box.isEnabled() ? palette_.foreground : palette_.secondary)
                     .withAlpha(box.isEnabled() ? 1.f : .5f));
         const float cx = rect.getRight()-14.f, cy = rect.getCentreY();
         juce::Path chevron;

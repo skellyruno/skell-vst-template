@@ -21,7 +21,7 @@ inline void applySkellMenuPalette(juce::LookAndFeel& look,
     look.setColour(juce::ComboBox::backgroundColourId, palette.surface);
     look.setColour(juce::ComboBox::textColourId, palette.foreground);
     look.setColour(juce::ComboBox::outlineColourId, palette.border);
-    look.setColour(juce::ComboBox::arrowColourId, palette.accent);
+    look.setColour(juce::ComboBox::arrowColourId, palette.foreground);
     look.setColour(juce::TextEditor::backgroundColourId, palette.surface);
     look.setColour(juce::TextEditor::textColourId, palette.foreground);
     look.setColour(juce::TextEditor::outlineColourId, palette.border);

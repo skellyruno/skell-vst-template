@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         const auto palette = skellcore::ui::studioPalette(skin);
         if (themed.findColour(juce::PopupMenu::backgroundColourId) != palette.surface
             || themed.findColour(juce::PopupMenu::highlightedBackgroundColourId) != palette.accent
-            || themed.findColour(juce::ComboBox::arrowColourId) != palette.accent
+            || themed.findColour(juce::ComboBox::arrowColourId) != palette.foreground
             || themed.findColour(juce::TextEditor::backgroundColourId) != palette.surface
             || themed.findColour(juce::PopupMenu::highlightedTextColourId)
                   != skellcore::ui::skellMenuSelectionText(palette)) {

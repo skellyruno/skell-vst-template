@@ -8,7 +8,7 @@ The former Skell VST Quickstart is preserved as a **small gain demo plugin**, wi
 **[SkellWorld](SkellWorld/README.md)** now adds an opt-in localhost presence/events hub to the shared foundation. Run `python tools/skellworld_hub.py`, then click JOIN WORLD in two quickstart plugin instances. Other SKELL products are catalogued for gradual adoption; **they are not yet connected automatically**. No audio-thread networking or remote parameter control.
 
 ## Contents
-- `SkellCore::DSP`: portable C++17 TempoClock, PhraseTracker, OnsetDetector, four-line FDNReverb, prototype 4× interpolated-peak limiter, PitchFormantEngine.
+- `SkellCore::DSP`: portable C++17 TempoClock, PhraseTracker, OnsetDetector, four-line FDNReverb (plus 8/16-line band-split `FDNReverb8`/`FDNReverb16` in `FDN.h`), prototype 4× interpolated-peak limiter, PitchFormantEngine.
 - `SkellCore::UI`: JUCE LookAndFeel, colour themes and glow cache.
 - **Production DSP backend copies**: SkellyTune RealtimeTuner v3.3 and dependencies (MIT), exact DeEsser PhraseAwareDetector behavior in a namespaced copy, and Skelly Master MasteringEngine in a namespaced copy.
 - `SkellCore/backends/SkellyTuneBackend.h`: adapter matching production pitch backend to the shared `PitchFormantEngine`.

@@ -25,6 +25,16 @@ FL Studio's audio thread; the real FL Studio CPU fields in results.csv must
 still be collected while the DAW is running. See
 docs/LOCAL_WINDOWS_HOST_VALIDATION.md for details.
 
+After entering the observations in results.csv, run the local reviewer:
+
+    python tools/Review-FLStudio-Results.py host-test-kit/results.csv
+
+It creates host-test-kit/flstudio-review.md. Blank rows remain **pending**;
+unsupported cases need a reason in notes, and any measured dropouts,
+automation failures or project-reopen failures are reported as failures.
+Even a fully completed sheet is self-reported evidence, not an automatic
+certification that FL Studio itself was tested by CI.
+
 ## 1. Exact binary under test
 
 - Commit SHA: `____________`

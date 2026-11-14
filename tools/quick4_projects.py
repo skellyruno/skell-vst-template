@@ -58,7 +58,7 @@ PROJECTS = {
         "target": "SkellFlangUiSmoke",
         "option": "SKELLFLANG_BUILD_UI_SMOKE",
         "core_dependency": "",
-        "status": "wired-needs-native-check",
+        "status": "locally-verified",
         "extra": [],
     },
 }

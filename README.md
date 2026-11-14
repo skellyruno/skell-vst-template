@@ -118,3 +118,5 @@ The v0.7.0 DSP import adds optional `BandFDN<8>` / `BandFDN<16>` with frequency-
 - `<SkellCore/SkellMenuTheme.h>`: apply each plugin's `StudioPalette` to its own popups, combos, and editable fields. `SkellHardwareLookAndFeel` now paints the combo/popup geometry and supports `setPalette(customPalette)` for product branding; **no default DAW menus** are created, and existing product look-and-feels are not replaced. The plugin owns the menu and look-and-feel lifetimes.
 
 These additions are **opt-in**. No existing SkellGlitch, Skell Key, EQ, Delay, Preset, etc. UI or skull artwork was changed. The final shared skull/knob/power visuals remain undecided. See [Movement and menu integration guide](docs/SKELL_MOVEMENT_AND_MENUS.md).
+
+**New-plugin generator:** the default immutable SkellCore pin now includes the opt-in Movement and theme-matched menu APIs. Fresh generated VST3 CI compile-checks the shared Movement/timer, popup, power, settings and audio-line palette APIs together, without enabling an animation or changing any shipped plugin icon.

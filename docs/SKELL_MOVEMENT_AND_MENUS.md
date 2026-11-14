@@ -70,3 +70,7 @@ The ComboBox arrow uses each palette's **foreground** rather than its accent. Th
 ## One-call palette adoption for controls
 
 The existing `SkellPowerButton`, `SkellSettingsButton`, `SkellSettingsSurface`, and `SkellAudioLine` now each accept `setPalette(productPalette)`. This only changes the controls that the plugin actually creates; no new controls are forced into a plugin. The hardware LookAndFeel's `setPalette` updates labels, text buttons, rotary labels and menus consistently, not just popup colours. This is particularly useful for plugin-specific themes without copying skins or globally changing other plugins.
+
+## Future-plugin generator pin
+
+The new-plugin generator now pins immutable SkellCore commit `a66736cb84f78b13aac80ffb08f34ec4cce558fb`, which includes Movement, themed popup rendering, one-call custom control palettes and the existing UI v2/FDN features. Generated Windows VST3 CI compiles all shared Movement, JUCE animator, menu, power, settings and audio-line APIs from that exact revision before declaring a new plugin compatible. No already-generated or installed VST3 is rewritten.

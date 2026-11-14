@@ -42,7 +42,7 @@ jobs:
           if (-not (Test-Path generated-smoke/Source/PluginEditor.cpp)) {
             throw 'Generated editor source missing'
           }
-      - name: Compile-check shared UI v2 headers from the generated pin
+      - name: Compile-check shared UI, Movement and themed menus from pinned SkellCore
         shell: pwsh
         run: |
           @'
@@ -50,6 +50,10 @@ jobs:
           #include <SkellCore/SkellMeterControls.h>
           #include <SkellCore/SkellResponsiveLayout.h>
           #include <SkellCore/FDN.h>
+          #include <SkellCore/SkellMovement.h>
+          #include <SkellCore/SkellMovementJUCE.h>
+          #include <SkellCore/SkellMenuTheme.h>
+          #include <SkellCore/SkellUnifiedControls.h>
           int skellSharedUiContractCompile() {
               skellcore::ui::SkellPresetBar bar;
               bar.setPresets(juce::StringArray{"One", "Two"}, 0);
@@ -63,6 +67,21 @@ jobs:
               fdn16.prepare(48000.0);
               const auto audio8 = fdn8.processFrame(0.2f, -0.2f);
               const auto audio16 = fdn16.processFrame(0.2f, -0.2f);
+              skellcore::ui::SkellMovement movement;
+              movement.tick();
+              skellcore::ui::SkellMovementAnimator animator;
+              skellcore::ui::SkellHardwareLookAndFeel pluginLook;
+              auto productColours = pluginLook.palette();
+              productColours.accent = juce::Colour(0xff46de53);
+              pluginLook.setPalette(productColours);
+              skellcore::ui::SkellPowerButton powerButton;
+              skellcore::ui::SkellSettingsSurface settingsSurface;
+              skellcore::ui::SkellAudioLine audioLine;
+              powerButton.setPalette(productColours);
+              settingsSurface.setPalette(productColours);
+              audioLine.setPalette(productColours);
+              juce::PopupMenu customMenu;
+              skellcore::ui::styleSkellPopup(customMenu, pluginLook);
               return bar.presetCount() + static_cast<int>(cells.size())
                      + (audio8[0] > 0.f && audio16[1] < 0.f ? 1 : 0);
           }

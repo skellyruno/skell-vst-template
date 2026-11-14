@@ -54,6 +54,13 @@ PROJECTS = {
         "status": "wired-needs-native-check",
         "extra": ["SKELL_PRESET_PACKAGE_TESTS=OFF"],
     },
+    "skell-fan-vst": {
+        "target": "SkellFanQuick4",
+        "option": "SKELLFAN_BUILD_UI_QUICK4",
+        "core_dependency": "SKELLCORE",
+        "status": "wired-needs-native-check",
+        "extra": ["SKELLFAN_BUILD_TESTS=OFF"],
+    },
     "skell-flang-vst": {
         "target": "SkellFlangUiSmoke",
         "option": "SKELLFLANG_BUILD_UI_SMOKE",

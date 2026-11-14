@@ -49,7 +49,7 @@ def analyse(csv_file):
         if key in keys:
             raise ValueError(f"Line {line_num}: duplicate scenario {key}")
         keys.append(key)
-        values = [row[field].strip() for field in FIELDS]
+        values = [(row.get(field) or "").strip() for field in FIELDS]
         notes = (row["notes"] or "").strip()
         if all(not value for value in values):
             summary["pending"].append(key)

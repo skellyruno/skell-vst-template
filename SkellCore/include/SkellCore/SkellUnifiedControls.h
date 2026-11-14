@@ -22,7 +22,12 @@ public:
     }
     void setSkin(StudioSkin skin) {
         skin_ = skin;
-        palette_ = studioPalette(skin);
+        setPalette(studioPalette(skin));
+    }
+    // Full plugin palette application, not just menus. All shared controls
+    // read this instance-local palette; other plugin editors are unaffected.
+    void setPalette(const StudioPalette& palette) {
+        palette_ = palette;
         setColour(juce::Label::textColourId, palette_.foreground);
         setColour(juce::Slider::textBoxTextColourId, palette_.foreground);
         setColour(juce::Slider::textBoxBackgroundColourId, palette_.surface);
@@ -31,12 +36,6 @@ public:
         setColour(juce::TextButton::textColourOffId, palette_.foreground);
         setColour(juce::TextButton::buttonOnColourId, palette_.accent);
         setColour(juce::TextButton::textColourOnId, palette_.background);
-        applySkellMenuPalette(*this, palette_);
-    }
-    // A plugin may use its own palette while retaining shared control geometry.
-    // This changes only this LookAndFeel instance, never other products.
-    void setPalette(const StudioPalette& palette) {
-        palette_ = palette;
         applySkellMenuPalette(*this, palette_);
     }
     StudioSkin skin() const noexcept { return skin_; }
@@ -183,6 +182,9 @@ public:
                     juce::Colour face) {
         accent_ = accent; muted_ = muted; face_ = face; repaint();
     }
+    void setPalette(const StudioPalette& palette) {
+        setColours(palette.accent, palette.secondary, palette.surface);
+    }
     void paintButton(juce::Graphics& g, bool hover, bool pressed) override {
         const auto b = getLocalBounds().toFloat().reduced(2.f);
         const auto side = juce::jmin(b.getWidth(), b.getHeight());
@@ -226,6 +228,9 @@ public:
     void setColours(juce::Colour accent, juce::Colour background) {
         accent_ = accent; background_ = background; repaint();
     }
+    void setPalette(const StudioPalette& palette) {
+        setColours(palette.accent, palette.surface);
+    }
     void paintButton(juce::Graphics& g, bool hover, bool pressed) override {
         auto area = getLocalBounds().toFloat().reduced(2.f);
         const auto size = juce::jmin(area.getWidth(), area.getHeight());
@@ -268,6 +273,10 @@ public:
         background_ = background; border_ = border;
         text_ = text; accent_ = accent; repaint();
     }
+    void setPalette(const StudioPalette& palette) {
+        setColours(palette.surface, palette.border,
+                   palette.foreground, palette.accent);
+    }
     void setTitle(juce::String title) { title_ = std::move(title); repaint(); }
     juce::Rectangle<int> contentBounds() const {
         return getLocalBounds().reduced(12).withTrimmedTop(30);
@@ -297,6 +306,9 @@ class SkellAudioLine final : public juce::Component {
 public:
     void setColours(juce::Colour line, juce::Colour baseline) {
         line_ = line; baseline_ = baseline; repaint();
+    }
+    void setPalette(const StudioPalette& palette) {
+        setColours(palette.accent, palette.border);
     }
     void pushLevel(float peak) {
         const auto level = std::isfinite(peak) ? juce::jlimit(0.f, 1.f, peak) : 0.f;

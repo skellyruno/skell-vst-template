@@ -66,3 +66,7 @@ settings dialogs, plugin processor parameters or APVTS IDs.
 ## Dropdown chevron contrast regression
 
 The ComboBox arrow uses each palette's **foreground** rather than its accent. This maintains readability on light Ivory surfaces and preserves the existing shared UI contrast acceptance test. Menu selection backgrounds and popup headers still use each plugin's accent; menu selection text chooses black or white by accent brightness. No previously shipped plugin control is replaced.
+
+## One-call palette adoption for controls
+
+The existing `SkellPowerButton`, `SkellSettingsButton`, `SkellSettingsSurface`, and `SkellAudioLine` now each accept `setPalette(productPalette)`. This only changes the controls that the plugin actually creates; no new controls are forced into a plugin. The hardware LookAndFeel's `setPalette` updates labels, text buttons, rotary labels and menus consistently, not just popup colours. This is particularly useful for plugin-specific themes without copying skins or globally changing other plugins.

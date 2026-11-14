@@ -88,12 +88,31 @@ int main(int argc, char** argv) {
     skellcore::ui::SkellHardwareLookAndFeel customLook;
     auto customPalette = customLook.palette();
     customPalette.accent = juce::Colours::orange;
+    customPalette.foreground = juce::Colour(0xfff6ea98);
+    customPalette.surface = juce::Colour(0xff13203a);
     customLook.setPalette(customPalette);
     if (customLook.findColour(juce::PopupMenu::highlightedBackgroundColourId)
-        != juce::Colours::orange) {
-        std::fprintf(stderr, "Custom plugin menu accent ignored\n");
+           != customPalette.accent
+        || customLook.findColour(juce::Label::textColourId)
+           != customPalette.foreground
+        || customLook.findColour(juce::Slider::textBoxTextColourId)
+           != customPalette.foreground
+        || customLook.findColour(juce::ComboBox::backgroundColourId)
+           != customPalette.surface
+        || customLook.findColour(juce::TextButton::textColourOffId)
+           != customPalette.foreground) {
+        std::fprintf(stderr, "Custom plugin palette is not applied consistently\n");
         return 1;
     }
+    // Single-call palette helpers on existing shared controls.
+    skellcore::ui::SkellPowerButton palettePower;
+    skellcore::ui::SkellSettingsButton paletteSettingsButton;
+    skellcore::ui::SkellSettingsSurface paletteSettings;
+    skellcore::ui::SkellAudioLine paletteLine;
+    palettePower.setPalette(customPalette);
+    paletteSettingsButton.setPalette(customPalette);
+    paletteSettings.setPalette(customPalette);
+    paletteLine.setPalette(customPalette);
     // JUCE adapter is opt-in: no timer runs in newly constructed editors.
     skellcore::ui::SkellMovementAnimator movementAnimator;
     if (movementAnimator.isRunning()

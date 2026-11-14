@@ -9,7 +9,9 @@ Ninja compiles changed files when the source revision advances.
 ## Windows: Visual Studio Developer PowerShell
 
 Install Python 3, Git, CMake, Ninja, and Visual Studio/MSVC once. Clone
-skellyruno/skellcore-vst-template on your PC. In that repository, run:
+skellyruno/skellcore-vst-template on your PC. Until the Quick4 draft PR
+lands, select branch feat/quick4-persistent-local-workspace-20261114
+when cloning. In that repository, run:
 
     .\quick4.ps1 -Plugin skell-preset-vst -Ref feat/preset-quick4-local-persistent-20261114 -Update
 
@@ -23,7 +25,8 @@ captures. Windows needs an interactive GUI session but not Xvfb.
 ## Linux
 
 Install JUCE Linux development headers, Git, CMake, Ninja, C++17 compiler,
-Xvfb and Xauth once. From the SkellCore checkout run:
+Xvfb and Xauth once. Clone the Quick4 draft branch of SkellCore while it
+is unmerged; from that checkout run:
 
     bash quick4.sh --ref feat/preset-quick4-local-persistent-20261114 --update
     bash quick4.sh --offline

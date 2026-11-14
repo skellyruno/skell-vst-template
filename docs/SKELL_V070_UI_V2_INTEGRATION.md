@@ -17,3 +17,6 @@ This branch deliberately combines the two existing development efforts without m
 
 ## Boundaries
 Do not merge either draft into production automatically. This branch is a *reconciliation candidate* against PR #26, not an instruction to overwrite it. Preserve all existing parameter IDs, presets, generator semantics, product artwork and user-approved interfaces.
+## Generator pinned-SHA check
+
+The template's `tools/new_plugin.py` now pins **`ace10c61835a7622fbaf58067d4ed74042261427`**, the first immutable integration commit, instead of the older UI-only commit. The generated-plugin Windows CI compiles the v2 UI headers and the v0.7 FDN headers from that exact pin; this prevents a misleading pass against an older release. Product identity and generator validation remain unchanged.

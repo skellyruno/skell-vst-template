@@ -47,6 +47,7 @@ jobs:
           #include <SkellCore/SkellPresetBar.h>
           #include <SkellCore/SkellMeterControls.h>
           #include <SkellCore/SkellResponsiveLayout.h>
+          #include <SkellCore/FDN.h>
           int skellSharedUiContractCompile() {
               skellcore::ui::SkellPresetBar bar;
               bar.setPresets(juce::StringArray{"One", "Two"}, 0);
@@ -54,7 +55,14 @@ jobs:
               meter.pushLevels(0.25f, 0.5f, 1.f/24.f);
               const auto cells = skellcore::ui::skellResponsiveCells(
                   {0, 0, 400, 200}, 4, 110, 52, 6, 3);
-              return bar.presetCount() + static_cast<int>(cells.size());
+              skellcore::FDNReverb8 fdn8;
+              skellcore::FDNReverb16 fdn16;
+              fdn8.prepare(48000.0);
+              fdn16.prepare(48000.0);
+              const auto audio8 = fdn8.processFrame(0.2f, -0.2f);
+              const auto audio16 = fdn16.processFrame(0.2f, -0.2f);
+              return bar.presetCount() + static_cast<int>(cells.size())
+                     + (audio8[0] > 0.f && audio16[1] < 0.f ? 1 : 0);
           }
           '@ | Set-Content -Path generated-smoke/tools/SharedUICompile.cpp -Encoding utf8
           @'

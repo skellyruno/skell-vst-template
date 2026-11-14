@@ -110,3 +110,11 @@ Newly generated plugins use per-product skin storage in `<SkellCore/SkellAppeara
 ## SkellCore v0.7.0 DSP + shared UI v2 integration (development)
 
 The v0.7.0 DSP import adds optional `BandFDN<8>` / `BandFDN<16>` with frequency-dependent decay via `<SkellCore/FDN.h>`, and updates the generic `TruePeakLimiter` gain envelope with a preallocated lookahead minimum. The existing four-line `FDNReverb` interface, JUCE plugin identity, saved-state format, and shared UI v2 headers are preserved. These are **libraries**; existing plugins do not automatically change sound or artwork. This integration is under test and is **not** a certified FL Studio release. See [the integration audit](docs/SKELL_V070_UI_V2_INTEGRATION.md).
+
+## Reusable SkellMovement and theme-matched menus (development)
+
+- `<SkellCore/SkellMovement.h>`: JUCE-free deterministic, zero-allocation visual pulse adapted from **SkellGlitch `ui/GlitchPulse.h`**. Call `tick()` on the editor/message thread (normally 30 Hz). The default schedule matches the original rare-glitch rhythm. Repaint only when `tick()` returns true; `intensity()` / `visualSeed()` can drive visual effects. Includes explicit reduced-motion and enable controls, no DSP or preset state.
+- `<SkellCore/SkellMovementJUCE.h>`: optional `SkellMovementAnimator`. Start it explicitly with an editor/component; it uses a safe target pointer, repaints on active visual frames only and stops on destruction. No timer runs by default.
+- `<SkellCore/SkellMenuTheme.h>`: apply each plugin's `StudioPalette` to its own popups, combos, and editable fields. `SkellHardwareLookAndFeel` now paints the combo/popup geometry and supports `setPalette(customPalette)` for product branding; **no default DAW menus** are created, and existing product look-and-feels are not replaced. The plugin owns the menu and look-and-feel lifetimes.
+
+These additions are **opt-in**. No existing SkellGlitch, Skell Key, EQ, Delay, Preset, etc. UI or skull artwork was changed. The final shared skull/knob/power visuals remain undecided. See [Movement and menu integration guide](docs/SKELL_MOVEMENT_AND_MENUS.md).

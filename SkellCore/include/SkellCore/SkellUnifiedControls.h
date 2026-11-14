@@ -6,6 +6,7 @@
 #include <SkellCore/SkellHardwareUI.h>
 #include <SkellCore/StudioUI.h>
 #include <SkellCore/LevelBridge.h>
+#include <SkellCore/SkellMenuTheme.h>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -30,18 +31,96 @@ public:
         setColour(juce::TextButton::textColourOffId, palette_.foreground);
         setColour(juce::TextButton::buttonOnColourId, palette_.accent);
         setColour(juce::TextButton::textColourOnId, palette_.background);
-        setColour(juce::ComboBox::backgroundColourId, palette_.surface);
-        setColour(juce::ComboBox::textColourId, palette_.foreground);
-        setColour(juce::ComboBox::outlineColourId, palette_.border);
-        // Never let JUCE's default white chevron disappear on light skins.
-        setColour(juce::ComboBox::arrowColourId, palette_.foreground);
-        setColour(juce::PopupMenu::backgroundColourId, palette_.surface);
-        setColour(juce::PopupMenu::textColourId, palette_.foreground);
-        setColour(juce::PopupMenu::highlightedBackgroundColourId, palette_.accent);
-        setColour(juce::PopupMenu::highlightedTextColourId, palette_.background);
+        applySkellMenuPalette(*this, palette_);
+    }
+    // A plugin may use its own palette while retaining shared control geometry.
+    // This changes only this LookAndFeel instance, never other products.
+    void setPalette(const StudioPalette& palette) {
+        palette_ = palette;
+        applySkellMenuPalette(*this, palette_);
     }
     StudioSkin skin() const noexcept { return skin_; }
     StudioPalette palette() const noexcept { return palette_; }
+    // Entirely plugin-drawn menus; no operating-system/DAW default popup skin.
+    void drawPopupMenuBackground(juce::Graphics& g, int width,
+                                 int height) override {
+        g.fillAll(palette_.surface);
+        g.setColour(palette_.border);
+        g.drawRect(0, 0, width, height, 1);
+    }
+    void drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& bounds,
+                           bool separator, bool enabled, bool highlighted,
+                           bool ticked, bool subMenu, const juce::String& text,
+                           const juce::String& shortcut, const juce::Drawable* icon,
+                           const juce::Colour* overrideText) override {
+        if (bounds.isEmpty()) return;
+        auto area = bounds.reduced(4, 2);
+        if (separator) {
+            g.setColour(palette_.border.withAlpha(.80f));
+            g.drawHorizontalLine(bounds.getCentreY(), float(area.getX()+8),
+                                 float(area.getRight()-8));
+            return;
+        }
+        if (highlighted && enabled) {
+            g.setColour(palette_.accent);
+            g.fillRoundedRectangle(area.toFloat(), 5.f);
+        }
+        auto foreground = (highlighted && enabled)
+            ? skellMenuSelectionText(palette_)
+            : (overrideText != nullptr ? *overrideText : palette_.foreground);
+        if (!enabled) foreground = palette_.secondary.withAlpha(.55f);
+        g.setColour(foreground);
+        const auto font = juce::Font(juce::FontOptions(13.f));
+        g.setFont(font);
+        const int markerWidth = 18;
+        if (ticked) {
+            juce::Path check;
+            const float mx = float(area.getX()+4), my = float(area.getCentreY());
+            check.startNewSubPath(mx, my);
+            check.lineTo(mx+4.f, my+4.f);
+            check.lineTo(mx+11.f, my-5.f);
+            g.strokePath(check, juce::PathStrokeType(1.8f));
+        } else if (icon != nullptr) {
+            icon->drawWithin(g, area.removeFromLeft(markerWidth).toFloat(),
+                             juce::RectanglePlacement::centred, 0.9f);
+        }
+        const int left = area.getX() + markerWidth;
+        const int rightReserve = subMenu ? 17 : (shortcut.isEmpty() ? 6 : 70);
+        auto textArea = juce::Rectangle<int>(left, area.getY(),
+                       juce::jmax(0, area.getRight()-rightReserve-left), area.getHeight());
+        g.drawFittedText(text, textArea, juce::Justification::centredLeft, 1);
+        if (!shortcut.isEmpty()) {
+            g.drawFittedText(shortcut, area.removeFromRight(65),
+                             juce::Justification::centredRight, 1);
+        }
+        if (subMenu) {
+            const float x = float(bounds.getRight()-12), y = float(bounds.getCentreY());
+            juce::Path arrow;
+            arrow.addTriangle(x-3.f, y-5.f, x+3.f, y, x-3.f, y+5.f);
+            g.fillPath(arrow);
+        }
+    }
+    void drawComboBox(juce::Graphics& g, int width, int height, bool pressed,
+                      int, int, int, int, juce::ComboBox& box) override {
+        auto rect = juce::Rectangle<float>(0.f, 0.f, float(width), float(height))
+                    .reduced(.75f);
+        if (rect.isEmpty()) return;
+        g.setColour(pressed ? palette_.raised : palette_.surface);
+        g.fillRoundedRectangle(rect, 5.f);
+        g.setColour(box.isEnabled() ? palette_.border : palette_.secondary);
+        g.drawRoundedRectangle(rect, 5.f, 1.f);
+        g.setColour((box.isEnabled() ? palette_.accent : palette_.secondary)
+                    .withAlpha(box.isEnabled() ? 1.f : .5f));
+        const float cx = rect.getRight()-14.f, cy = rect.getCentreY();
+        juce::Path chevron;
+        chevron.startNewSubPath(cx-5.f, cy-2.f);
+        chevron.lineTo(cx, cy+3.f);
+        chevron.lineTo(cx+5.f, cy-2.f);
+        g.strokePath(chevron, juce::PathStrokeType(1.75f,
+                       juce::PathStrokeType::curved,
+                       juce::PathStrokeType::rounded));
+    }
+
     // Normal JUCE ToggleButtons match the same compact status-dot language
     // as SKELL effect slots and settings; the dedicated power glyph keeps its
     // own painter. The plugin controls toggle semantics via APVTS as before.

@@ -172,14 +172,18 @@ def main() -> int:
             if frame.stat().st_size<1024 or item["width"]<64 or item["height"]<64:
                 raise RuntimeError("Blank/invalid screenshot: "+item["file"])
         source_hash=hashlib.sha256((project/"CMakeLists.txt").read_bytes()).hexdigest()
-        def git_info(*args):
+        def git_info(location,*args):
+            if location is None:
+                return None
             try:
-                return subprocess.run(["git","-C",str(project),*args],
+                return subprocess.run(["git","-C",str(location),*args],
                                       check=True,capture_output=True,text=True).stdout.strip()
             except (OSError,subprocess.CalledProcessError):
                 return None
-        source_commit=git_info("rev-parse","HEAD")
-        dirty=bool(git_info("status","--porcelain")) if source_commit else None
+        source_commit=git_info(project,"rev-parse","HEAD")
+        dirty=bool(git_info(project,"status","--porcelain")) if source_commit else None
+        core_commit=git_info(core,"rev-parse","HEAD")
+        juce_commit=git_info(juce,"rev-parse","HEAD")
         if source_commit is None:
             raise RuntimeError("Cannot prove the source revision (git unavailable or project not a checkout)")
         report={
@@ -189,6 +193,8 @@ def main() -> int:
             "cmake_sha256":source_hash,
             "source_commit":source_commit,
             "source_dirty":dirty,
+            "core_commit":core_commit,
+            "juce_commit":juce_commit,
             "renderer_status":cfg["status"],
             "verification":"locally-rebuilt-real-JUCE" if not dirty else "dirty-source-local-build",
             "caveat":"Not Windows VST3 or FL Studio validation",
@@ -196,7 +202,8 @@ def main() -> int:
         (output/"local-build-report.json").write_text(json.dumps(report,indent=2)+"\n")
         # Self-contained handoff across ChatGPT environments: verified UI
         # PNGs, contact sheet, manifest and exact source commit evidence.
-        package=output/(args.plugin+"-quick4-"+source_commit[:12]+".zip")
+        package=output/(args.plugin+("-full-" if args.full else "-quick4-")
+                        +source_commit[:12]+".zip")
         with zipfile.ZipFile(package,"w",zipfile.ZIP_DEFLATED) as archive:
             for name in sorted(expected | {"manifest.json","local-build-report.json"}):
                 archive.write(output/name,arcname=name)

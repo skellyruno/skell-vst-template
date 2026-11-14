@@ -153,6 +153,17 @@ int main() {
 
     // ---- the original FDNReverb is untouched: identical output to a fresh instance with the same settings --------
     skellcore::FDNReverb p, q; p.prepare(sr); q.prepare(sr); p.setParameters(2.f, .4f, .3f); q.setParameters(2.f, .4f, .3f);
-    for (int i = 0; i < 2000; ++i) { const float x = std::sin(i * .05f); assert(p.processFrame(x, x) == q.processFrame(x, x)); }
+    for (int i = 0; i < 2000; ++i) {
+        const float x = std::sin(i * .05f);
+        const auto a = p.processFrame(x, x);
+        const auto b = q.processFrame(x, x);
+        if (a != b) {
+            std::fprintf(stderr, "Legacy FDN determinism mismatch sample=%d x=%.9g p=(%.9g,%.9g) q=(%.9g,%.9g)\n",
+                         i, x, a[0], a[1], b[0], b[1]);
+            std::fflush(stderr);
+            assert(a == b);
+            std::abort();
+        }
+    }
     std::puts("PASS: band-split higher-order FDN: RT60 per band, density, stereo, robustness, no allocation");
 }

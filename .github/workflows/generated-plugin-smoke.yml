@@ -1,9 +1,11 @@
 name: SkellCore / Generated Plugin VST3 Smoke
 
 # Cancel older UI/build runs on superseded development commits.
+# Avoid duplicate push/PR CI for one feature branch, without ever
+# cancelling main, production, release, tag or manual runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ${{ github.workflow }}-${{ (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/production/') || github.head_ref == 'main' || github.head_ref == 'production' || startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'production/')) && github.run_id || github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/production' && !startsWith(github.ref, 'refs/heads/release/') && !startsWith(github.ref, 'refs/heads/production/') && github.head_ref != 'main' && github.head_ref != 'production' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'production/') }}
 
 on:
   push:

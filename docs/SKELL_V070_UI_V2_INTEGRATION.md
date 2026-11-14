@@ -20,3 +20,13 @@ Do not merge either draft into production automatically. This branch is a *recon
 ## Generator pinned-SHA check
 
 The template's `tools/new_plugin.py` now pins **`ace10c61835a7622fbaf58067d4ed74042261427`**, the first immutable integration commit, instead of the older UI-only commit. The generated-plugin Windows CI compiles the v2 UI headers and the v0.7 FDN headers from that exact pin; this prevents a misleading pass against an older release. Product identity and generator validation remain unchanged.
+
+## Contrast bug fix and performance baseline — 2026-11-14
+
+The headless renderer caught a barely visible combo-arrow on the light Ivory skin. Root cause was a missing `juce::ComboBox::arrowColourId` in the shared `SkellHardwareLookAndFeel`. The shared arrow now uses each skin's high-contrast foreground colour; a real JUCE renderer regression checks all four skins. No skull, knob geometry, parameter IDs or DSP are changed by this visual bug fix.
+
+The portable CPU benchmark now reports the opt-in FDN 8/16 variants' per-frame processing cost and estimated memory, without threshold-based CI failure. Prior independent GCC 14.2 single-machine measurements were about 26 ns (8-line) and 54 ns (16-line) per stereo frame at 48 kHz; CI runner measurements must be recorded separately and are not FL Studio CPU figures.
+
+The generated plugin source pin is now immutable commit `75d45942bc2343b837217b123e2538372d409cbf`, which contains both the v0.7 DSP + shared UI and the readable arrow fix.
+
+CI workflows now share one automatic concurrency group per source branch to avoid duplicate push/PR jobs, but use unique groups for manual, main, production, release and tag runs so those protected runs are never silently cancelled.

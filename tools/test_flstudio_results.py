@@ -80,15 +80,17 @@ class ReviewHostResultsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-finite"):
             results.analyse(self.path)
         self.rows[0]["cpu_peak_percent"] = "3"
+        original_second = dict(self.rows[1])
         self.rows[1]["instances"] = self.rows[0]["instances"]
         self.rows[1]["host_buffer_samples"] = self.rows[0]["host_buffer_samples"]
         self.rows[1]["sample_rate_hz"] = self.rows[0]["sample_rate_hz"]
         self.rewrite()
         with self.assertRaisesRegex(ValueError, "duplicate"):
             results.analyse(self.path)
+        self.rows[1] = original_second
         del self.rows[-1]
         self.rewrite()
-        with self.assertRaisesRegex(ValueError, "duplicate"):
+        with self.assertRaisesRegex(ValueError, "missing"):
             results.analyse(self.path)
 
     def test_rejects_partial_and_unsupported_without_reason(self):

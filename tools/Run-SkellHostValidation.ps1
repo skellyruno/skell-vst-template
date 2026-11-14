@@ -19,6 +19,29 @@ if (-not $BuildDir) { $BuildDir = Join-Path $repo "build-host-local" }
 if (-not $ReportDir) { $ReportDir = Join-Path $repo "host-reports" }
 New-Item -ItemType Directory -Path $ReportDir -Force | Out-Null
 
+# Prevent -SkipBuild from attributing an old binary to a newer checkout.
+$gitSha = "unavailable"
+$sourceDirty = $false
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    $currentSha = @(& git -C $repo rev-parse HEAD 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $currentSha.Count -gt 0) {
+        $gitSha = "$($currentSha[0])".Trim()
+        $pendingChanges = @(& git -C $repo status --porcelain --untracked-files=no 2>$null)
+        $sourceDirty = ($pendingChanges.Count -gt 0)
+    }
+}
+$revisionStamp = Join-Path $BuildDir "skellcore-host-built-revision.txt"
+if ($SkipBuild) {
+    if ($gitSha -eq "unavailable" -or $sourceDirty -or
+        -not (Test-Path $revisionStamp)) {
+        throw "-SkipBuild requires a clean Git checkout and a previous stamped build."
+    }
+    $builtRevision = (Get-Content $revisionStamp -Raw).Trim()
+    if ($builtRevision -ne $gitSha) {
+        throw "Source commit $gitSha differs from last built revision $builtRevision. Rebuild first."
+    }
+}
+
 if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
     throw "CMake was not found. Install CMake and the Visual Studio C++ toolchain."
 }
@@ -33,6 +56,8 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed" }
     & cmake --build $BuildDir --config Release --parallel 2
     if ($LASTEXITCODE -ne 0) { throw "Windows SkellCore build failed" }
+    New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
+    $gitSha | Set-Content -Path $revisionStamp -Encoding UTF8
 }
 
 $exes = @(Get-ChildItem $BuildDir -Recurse -File -Filter "SkellCoreHostReadiness.exe")
@@ -59,11 +84,6 @@ if ($WithDSPTests) {
     if ($LASTEXITCODE -ne 0) { throw "Additional portable DSP tests failed" }
 }
 
-$gitSha = "unavailable"
-if (Get-Command git -ErrorAction SilentlyContinue) {
-    $sha = @(& git -C $repo rev-parse HEAD 2>$null)
-    if ($LASTEXITCODE -eq 0 -and $sha.Count -gt 0) { $gitSha = "$($sha[0])".Trim() }
-}
 $cpu = "unknown"
 try {
     $cpuData = Get-CimInstance Win32_Processor -ErrorAction Stop | Select-Object -First 1
@@ -78,6 +98,8 @@ $summary = [ordered]@{
     schema = "skellcore-local-host-readiness/1"
     date_utc = (Get-Date).ToUniversalTime().ToString("o")
     repo_commit = $gitSha
+    source_tree_dirty = $sourceDirty
+    build_revision_stamp = if (Test-Path $revisionStamp) { (Get-Content $revisionStamp -Raw).Trim() } else { $null }
     processor = $cpu
     os = [Environment]::OSVersion.VersionString
     machine = $env:COMPUTERNAME
@@ -96,7 +118,7 @@ $summary | ConvertTo-Json -Depth 5 | Set-Content -Path $reportPath -Encoding UTF
 Write-Host ""
 Write-Host "SkellCore Windows host readiness: PASS" -ForegroundColor Green
 Write-Host "CPU: $cpu"
-Write-Host "Commit: $gitSha"
+Write-Host "Commit: $gitSha; source tree dirty: $sourceDirty"
 Write-Host "CSV: $matrixPath"
 Write-Host "Report: $reportPath"
 Write-Host "VST3 binary SHA256: $binaryHash"

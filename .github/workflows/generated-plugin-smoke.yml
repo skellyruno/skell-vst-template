@@ -1,9 +1,11 @@
 name: SkellCore / Generated Plugin VST3 Smoke
 
 # Cancel older UI/build runs on superseded development commits.
+# Avoid duplicate push/PR CI for one feature branch, without ever
+# cancelling main, production, release, tag or manual runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ${{ github.workflow }}-${{ (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/production/') || github.head_ref == 'main' || github.head_ref == 'production' || startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'production/')) && github.run_id || github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/production' && !startsWith(github.ref, 'refs/heads/release/') && !startsWith(github.ref, 'refs/heads/production/') && github.head_ref != 'main' && github.head_ref != 'production' && !startsWith(github.head_ref, 'release/') && !startsWith(github.head_ref, 'production/') }}
 
 on:
   push:
@@ -47,6 +49,7 @@ jobs:
           #include <SkellCore/SkellPresetBar.h>
           #include <SkellCore/SkellMeterControls.h>
           #include <SkellCore/SkellResponsiveLayout.h>
+          #include <SkellCore/FDN.h>
           int skellSharedUiContractCompile() {
               skellcore::ui::SkellPresetBar bar;
               bar.setPresets(juce::StringArray{"One", "Two"}, 0);
@@ -54,7 +57,14 @@ jobs:
               meter.pushLevels(0.25f, 0.5f, 1.f/24.f);
               const auto cells = skellcore::ui::skellResponsiveCells(
                   {0, 0, 400, 200}, 4, 110, 52, 6, 3);
-              return bar.presetCount() + static_cast<int>(cells.size());
+              skellcore::FDNReverb8 fdn8;
+              skellcore::FDNReverb16 fdn16;
+              fdn8.prepare(48000.0);
+              fdn16.prepare(48000.0);
+              const auto audio8 = fdn8.processFrame(0.2f, -0.2f);
+              const auto audio16 = fdn16.processFrame(0.2f, -0.2f);
+              return bar.presetCount() + static_cast<int>(cells.size())
+                     + (audio8[0] > 0.f && audio16[1] < 0.f ? 1 : 0);
           }
           '@ | Set-Content -Path generated-smoke/tools/SharedUICompile.cpp -Encoding utf8
           @'

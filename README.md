@@ -106,3 +106,7 @@ SkellCore now includes an **opt-in first-run tutorial overlay**, based on OmniCh
 The ongoing [SkellCore unified-identity PR](https://github.com/skellyruno/skellcore-vst-template/pull/26) introduces a neutral master skull with plugin-specific elements, a shared hardware knob renderer, settings gear/panel, working enable/bypass button and a CPU-conscious audio-level line. Existing Skell Key artwork and shipped plugins are not automatically changed. Appearance designs remain provisional.
 
 Newly generated plugins use per-product skin storage in `<SkellCore/SkellAppearanceStore.h>`. Windows CI now also builds a fresh **generated VST3 against the generator's own pinned revision** to detect template/dependency mismatches. Read [identity and controls integration](docs/SKELL_IDENTITY_CONTROLS.md).
+
+## SkellCore v0.7.0 DSP + shared UI v2 integration (development)
+
+The v0.7.0 DSP import adds optional `BandFDN<8>` / `BandFDN<16>` with frequency-dependent decay via `<SkellCore/FDN.h>`, and updates the generic `TruePeakLimiter` gain envelope with a preallocated lookahead minimum. The existing four-line `FDNReverb` interface, JUCE plugin identity, saved-state format, and shared UI v2 headers are preserved. These are **libraries**; existing plugins do not automatically change sound or artwork. This integration is under test and is **not** a certified FL Studio release. See [the integration audit](docs/SKELL_V070_UI_V2_INTEGRATION.md).

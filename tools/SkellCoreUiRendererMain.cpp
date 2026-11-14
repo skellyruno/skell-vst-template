@@ -39,6 +39,20 @@ int main(int argc, char** argv) {
     }
 
 
+    // Every skin needs a readable ComboBox chevron, including light Ivory.
+    // The generic JUCE white default disappears on light surface colours.
+    for (auto skin : {skellcore::ui::StudioSkin::Ivory,
+                      skellcore::ui::StudioSkin::Obsidian,
+                      skellcore::ui::StudioSkin::Amethyst,
+                      skellcore::ui::StudioSkin::Crimson}) {
+        skellcore::ui::SkellHardwareLookAndFeel skinLook(skin);
+        if (skinLook.findColour(juce::ComboBox::arrowColourId)
+              != skinLook.palette().foreground) {
+            std::fprintf(stderr, "ComboBox chevron contrast is not skin-aware\n");
+            return 1;
+        }
+    }
+
     // Preset browser never modifies host parameters or storage itself.
     skellcore::ui::SkellPresetBar presets;
     presets.setBounds(0, 0, 360, 36);

@@ -33,6 +33,8 @@ public:
         setColour(juce::ComboBox::backgroundColourId, palette_.surface);
         setColour(juce::ComboBox::textColourId, palette_.foreground);
         setColour(juce::ComboBox::outlineColourId, palette_.border);
+        // Never let JUCE's default white chevron disappear on light skins.
+        setColour(juce::ComboBox::arrowColourId, palette_.foreground);
         setColour(juce::PopupMenu::backgroundColourId, palette_.surface);
         setColour(juce::PopupMenu::textColourId, palette_.foreground);
         setColour(juce::PopupMenu::highlightedBackgroundColourId, palette_.accent);

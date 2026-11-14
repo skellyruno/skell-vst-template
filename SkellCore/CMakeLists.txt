@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SkellCore VERSION 0.6.0 LANGUAGES CXX)
+project(SkellCore VERSION 0.7.0 LANGUAGES CXX)
 
 add_library(SkellCoreDSP INTERFACE)
 add_library(SkellCore::DSP ALIAS SkellCoreDSP)
@@ -50,6 +50,10 @@ if(SKELLCORE_BUILD_TESTS)
   add_executable(SkellCoreLimiterParityTests tests/test_limiter_parity.cpp)
   target_link_libraries(SkellCoreLimiterParityTests PRIVATE SkellCore::DSP)
   add_test(NAME SkellCoreLimiterParityTests COMMAND SkellCoreLimiterParityTests)
+  # v0.7.0 higher-order FDN DSP regression; legacy 4-line FDN remains unchanged.
+  add_executable(SkellCoreFdnTests tests/test_fdn.cpp)
+  target_link_libraries(SkellCoreFdnTests PRIVATE SkellCore::DSP)
+  add_test(NAME SkellCoreFdnTests COMMAND SkellCoreFdnTests)
   add_executable(SkellCoreCachedParametersTests tests/test_cached_parameters.cpp)
   target_link_libraries(SkellCoreCachedParametersTests PRIVATE SkellCore::DSP)
   add_test(NAME SkellCoreCachedParametersTests COMMAND SkellCoreCachedParametersTests)

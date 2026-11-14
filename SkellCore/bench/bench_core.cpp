@@ -1,4 +1,5 @@
 #include <SkellCore/Core.h>
+#include <SkellCore/FDN.h>
 #include <SkellCore/backends/SkellyTuneBackend.h>
 #include <vector>
 #include <memory>
@@ -48,6 +49,33 @@ int main() {
     finalChecksum=checksum;
     std::cout<<"FDN reverb: "<<elapsed/4.0*100.0
              <<"% of one 48k real-time stream (wall time)\n";
+    // Higher-order FDN CPU and memory baseline: no timing thresholds.
+    // The reverb algorithms are optional and do not replace legacy FDNReverb.
+    auto benchmarkBandFDN = [&](auto& candidate, const char* label) {
+        candidate.prepare(rate);
+        candidate.setParameters(2.5f, 1.2f, .35f);
+        for (int i=0;i<patternSize;++i) {
+            const auto dry = candidate.processFrame(input[i][0],input[i][1]);
+            (void) dry;
+        }
+        double sum=0.;
+        const auto began=clock::now();
+        for (int i=0;i<frames;++i) {
+            const auto dry = candidate.processFrame(input[i&(patternSize-1)][0],
+                                                    input[i&(patternSize-1)][1]);
+            sum += dry[0] + dry[1];
+        }
+        const double secs=std::chrono::duration<double>(clock::now()-began).count();
+        finalChecksum=sum;
+        std::cout<<label<<" FDN reverb: "<<std::fixed<<std::setprecision(3)
+                 <<secs/frames*1.e9<<" ns/stereo frame; "
+                 <<secs/4.0*100.0<<"% of one 48k real-time stream; "
+                 <<candidate.estimatedWorkingBytes()<<" estimated working bytes\n";
+    };
+    skellcore::FDNReverb8 fdn8;
+    skellcore::FDNReverb16 fdn16;
+    benchmarkBandFDN(fdn8, "8-line");
+    benchmarkBandFDN(fdn16, "16-line");
     // The pitch engine is likely a larger CPU cost than an FDN. Benchmark
     // its true block-processing adapter on continuous voiced audio.
     std::vector<float> vocalL(frames), vocalR(frames);
